@@ -1,6 +1,6 @@
 # ADR-0001: Identity via portal-owned link table; FACTS is never written
 
-**Status:** Accepted (2026-07-22)
+**Status:** Accepted (2026-07-22), amended (2026-07-22 — see Amendment)
 **Wayfinder:** [map #6](https://github.com/MattPereira/tabernacle-school-portal/issues/6), decided in [#5](https://github.com/MattPereira/tabernacle-school-portal/issues/5) (revised) with [#1](https://github.com/MattPereira/tabernacle-school-portal/issues/1) and [#4](https://github.com/MattPereira/tabernacle-school-portal/issues/4)
 
 ## Context
@@ -37,6 +37,15 @@ identity_link: google_email ↔ facts_person_id
   - **Parents** (out of scope for MVP): add magic-link as a second auth provider; their link rows auto-seed from FACTS contact email, which for parents *is* their own address (735/884 present).
   - **Non-`tbs.org` staff exception:** admin creates a link row; domain policy becomes "tbs.org OR has-link-row".
 - Cost: one small table + one admin screen, plus the one-time seeding eyeball work.
+
+## Amendment (2026-07-22, [#12](https://github.com/MattPereira/tabernacle-school-portal/issues/12))
+
+`facts_person_id` is **nullable**: a link row is a *portal account*, optionally linked to FACTS. Motivation: 7 active staff Workspace accounts (incl. a 3rd-grade teacher) have no FACTS person and never will — FACTS doesn't track them. The gate invariant is unchanged (row exists = account exists). Guards:
+
+- Null-FACTS rows are **admin-created only**; sync can never mint them.
+- Uniqueness is on `google_email` only — many logins may link to one FACTS person; one login can never resolve to two people.
+
+The row also carries two portal-owned facts, set at link creation, never derived from FACTS (whose role signals are junk — `administrator=true` on 48/70 active staff): a **role** (`student` | `staff`, single-valued) and an **admin** boolean. Sync flags role drift as an admin-screen suggestion only.
 
 ## Alternatives rejected
 

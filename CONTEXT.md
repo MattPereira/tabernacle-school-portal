@@ -4,9 +4,11 @@ Terms with settled meanings in this project. Use these words exactly; don't drif
 
 - **Contact email** — the email field on a FACTS person. FACTS owns it; the portal never reads it for auth and never writes it. Not to be confused with login identity.
 - **Login identity** — the Google account a person authenticates with (school-issued `tbs.org` Workspace account for students/staff). Governed by school IT, not FACTS.
-- **Link table** (`identity_link`) — portal-owned mapping `google_email ↔ facts_person_id`. The one fact neither FACTS nor Workspace stores. Doubles as the allowlist. See [ADR-0001](docs/adr/0001-identity-link-table.md).
+- **Link table** (`identity_link`) — portal-owned table of portal accounts: `google_email ↔ facts_person_id` (nullable — a row is a portal account, *optionally* linked to FACTS). Doubles as the allowlist; carries the portal-owned role and admin flag. Unique on `google_email` only. See [ADR-0001](docs/adr/0001-identity-link-table.md) incl. Amendment.
+- **Role** — portal-owned fact on a link row: `student` | `staff`, single-valued, set at link creation. Never derived from FACTS (its role flags are unusable); sync flags drift as an admin suggestion only. Decided in [#12](https://github.com/MattPereira/tabernacle-school-portal/issues/12).
+- **Admin** — orthogonal portal-owned boolean on a link row; grants the link-management screen. Not FACTS "administrator" (= SIS access) and not Workspace admin (= IT).
 - **Linked / unlinked** — a login identity with / without a link-table row. Unlinked logins reach the **holding page** (name + "contact the office"), nothing else.
-- **Holding page** — what an authenticated-but-unlinked user sees. The soft failure mode that keeps login independent of data quality.
+- **Holding page** — what an authenticated-but-unlinked user sees: Google-name greeting, "contact the school office", sign-out. No request-access flow, no role guess. The soft failure mode that keeps login independent of data quality. Unlinked logins are server-logged (no UI).
 - **Sync** — the scheduled read-only pull from the FACTS API into the portal DB. FACTS always wins; there is no write-back.
 - **Walking skeleton** — the MVP: login, role-aware home, sync, admin view. A chassis for future features, deliberately feature-free.
 
