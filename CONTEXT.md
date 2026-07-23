@@ -9,7 +9,7 @@ Terms with settled meanings in this project. Use these words exactly; don't drif
 - **Admin** — orthogonal portal-owned boolean on a link row; grants the link-management screen. Not FACTS "administrator" (= SIS access) and not Workspace admin (= IT).
 - **Linked / unlinked** — a login identity with / without a link-table row. Unlinked logins reach the **holding page** (name + "contact the office"), nothing else.
 - **Holding page** — what an authenticated-but-unlinked user sees: Google-name greeting, "contact the school office", sign-out. No request-access flow, no role guess. The soft failure mode that keeps login independent of data quality. Unlinked logins are server-logged (no UI).
-- **Sync** — the scheduled read-only pull from the FACTS API into the portal DB. FACTS always wins; there is no write-back.
+- **Sync** — the read-only pull from the FACTS API into the portal DB mirror. FACTS always wins; there is no write-back. MVP trigger is a manual admin-screen button (nightly cron is a fast-follow on the same endpoint). Applies all-or-nothing in one transaction; **never revokes access** — FACTS-inactive people are flagged for the admin, and Workspace suspension is the real kill switch. Decided in [#13](https://github.com/MattPereira/tabernacle-school-portal/issues/13).
 - **Walking skeleton** — the MVP: login, role-aware home, sync, admin view. A chassis for future features, deliberately feature-free.
 
 ## Avoided terms
