@@ -2,3 +2,5 @@
 .env.local
 facts/*
 PLAN.md
+google/*
+db/data/
