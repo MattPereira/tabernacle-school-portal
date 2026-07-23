@@ -1,6 +1,6 @@
 # ADR-0002: Codebase conventions & architecture for the walking skeleton
 
-**Status:** Accepted (2026-07-23)
+**Status:** Accepted (2026-07-23), amended (2026-07-23 — see Amendment)
 **Wayfinder:** [map #6](https://github.com/MattPereira/tabernacle-school-portal/issues/6), decided in [#14](https://github.com/MattPereira/tabernacle-school-portal/issues/14). Builds on the stack choice ([#3](https://github.com/MattPereira/tabernacle-school-portal/issues/3): Next.js + TS + Neon/Drizzle + better-auth + Vercel).
 
 ## Context
@@ -49,6 +49,8 @@ There is **no separate `server/` folder.** It was considered and rejected: a ded
 
 ⚠️ The seed data (`identity-links.json`, 340 pairs) is **student PII** — whether it is ever committed vs. regenerated from FACTS at seed time is deferred to the seed/sync build, not decided here.
 
+> **Superseded in part** by the Amendment below: the fetchers are kept, not deleted.
+
 ### 6. Testing: Vitest, through the module interface, on PGlite; no E2E
 
 - **Vitest** — TS-native, fast, approachable.
@@ -56,6 +58,12 @@ There is **no separate `server/` folder.** It was considered and rejected: a ded
 - **PGlite** — embedded in-process Postgres, Drizzle-supported. Real SQL/transaction semantics (the transaction *is* the behavior in sync), no Docker, no network. Chosen over a Neon test branch (network + lifecycle cost) and an in-memory fake (stops testing real SQL).
 - **No E2E / no Playwright, and not planned.** The one flow worth E2E-ing (OAuth) is the worst to E2E, and the MVP has no complex client-side UI. Adopt E2E only if a concrete flow later proves un-coverable by cheaper tests — a real trigger, not a scheduled milestone.
 - **Convention:** every ticket ships with a test; `/implement` drives `/tdd` red-green.
+
+## Amendment (2026-07-23, [#17](https://github.com/MattPereira/tabernacle-school-portal/issues/17))
+
+The **fetchers are kept**, not deleted, in `scripts/facts/` and `scripts/google/` (layout in [conventions](../conventions.md)). They're the only executable record of how the external APIs are actually called — FACTS' 10 req/min ceiling and Sieve filter syntax, Workspace JWT impersonation — and are ops-time, which is what `scripts/` is for. The runtime FACTS client under `src/lib/` is still to be written, *from* these. Service-account key now lives in gitignored `secrets/`.
+
+⚠️ Being gitignored, these were unrecoverable when deleted; `fetch-parents.mjs` was lost for good. Commit prototype code before a cleanup ticket touches it.
 
 ## Consequences
 

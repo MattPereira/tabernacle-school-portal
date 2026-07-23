@@ -1,22 +1,28 @@
 // One-time identity matcher: pairs active tbs.org Workspace accounts with
 // FACTS people by name, producing the seed data for the identity link table.
 //
-//   db/data/identity-links.json   [{ googleEmail, factsId, type, firstName, lastName, how }]
-//   db/data/review.json     ambiguous/unmatched Google accounts + candidate suggestions (human resolves)
-//   db/data/unmatched-facts.json  FACTS people with no Workspace account (grades 03-08 + staff only)
+//   scripts/data/identity-links.json   [{ googleEmail, factsId, type, firstName, lastName, how }]
+//   scripts/data/review.json     ambiguous/unmatched Google accounts + candidate suggestions (human resolves)
+//   scripts/data/unmatched-facts.json  FACTS people with no Workspace account (grades 03-08 + staff only)
 //
-// Run: node db/build-identity-links.mjs
+// Run: node scripts/build-identity-links.mjs
 //
 // factsId is studentId / staffId — the keys the local mirror and future sync
 // use (staffId == personId; students are keyed by studentId everywhere we read).
 // Zero FACTS writes; inputs are the local mirror files only.
+//
+// Inputs live in scripts/data/ (gitignored — student PII), produced by the
+// sibling fetchers. Regenerate them first:
+//   node --env-file=.env scripts/google/fetch-workspace-users.mjs
+//   node --env-file=.env scripts/facts/fetch-students.mjs
+//   node --env-file=.env scripts/facts/fetch-staff.mjs
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
 const read = async (p) => JSON.parse(await readFile(new URL(p, import.meta.url), "utf8"));
-const workspace = await read("../google/data/workspace-users.json");
-const students = await read("../facts/data/students.json");
-const staff = await read("../facts/data/staff.json");
+const workspace = await read("data/workspace-users.json");
+const students = await read("data/students.json");
+const staff = await read("data/staff.json");
 // Human review decisions (HITL): { links: [{ googleEmail, factsId, type, note }], skip: { "email": "why", ... } }
 const manual = await read("data/manual-links.json").catch(() => ({ links: [], skip: {} }));
 
@@ -139,5 +145,5 @@ await out("unmatched-facts.json", unmatchedFacts.map(({ factsId, type, firstName
 
 console.log(`${candidates.length} candidate accounts`);
 console.log(`  linked:  ${links.length} (${links.filter((l) => l.how === "staff-email").length} by staff email, ${links.filter((l) => l.how === "name-exact").length} by exact name)`);
-console.log(`  review:  ${review.length} -> db/data/review.json`);
-console.log(`  FACTS people missing an account: ${unmatchedFacts.length} -> db/data/unmatched-facts.json`);
+console.log(`  review:  ${review.length} -> scripts/data/review.json`);
+console.log(`  FACTS people missing an account: ${unmatchedFacts.length} -> scripts/data/unmatched-facts.json`);

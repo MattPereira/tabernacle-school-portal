@@ -1,6 +1,22 @@
+# secrets & env
 .env
 .env.local
-facts/*
+secrets/
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# test / build artifacts
+/coverage
+
+# prototype leftovers — regenerated from FACTS/Workspace at seed time
+scripts/data/
+
+# personal planning
 PLAN.md
-google/*
-db/data/

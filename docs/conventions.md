@@ -18,7 +18,13 @@ src/                      everything the running app imports at runtime
 reference/                external-system REFERENCE material (read while building; not imported)
 └── facts/                   api-definitions.json — the FACTS API Swagger spec
 
-scripts/                  ops-time scripts run once (e.g. seed) + their data
+scripts/                  ops-time scripts, run once — not runtime-imported
+├── build-identity-links.mjs  the seed matcher (Workspace account -> FACTS person)
+├── facts/                    FACTS fetchers + shared rate-limited client
+├── google/                   Workspace Directory fetcher
+└── data/                     shared I/O for all of the above [gitignored — student PII]
+
+secrets/                  gitignored service-account keys (Google domain-wide delegation)
 drizzle/                  generated migration SQL
 drizzle.config.ts         points at src/lib/db/schema
 docs/                     CONTEXT.md glossary, adr/ decision records, this file
