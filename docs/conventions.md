@@ -11,13 +11,15 @@ src/                      everything the running app imports at runtime
 ├── lib/                    the app's non-UI, non-route code
 │   ├── db/                   schema/ (auth.ts + mirror.ts + portal.ts) + client.ts   [wiring]
 │   ├── auth/                 better-auth instance, browser client, getViewer()  [wiring]
+│   ├── facts/                rate-limited read-only FACTS API client          [wiring]
 │   ├── sync/                 read-only FACTS → DB sync                      [rule module]
 │   └── identity/             resolveAccess(email, deps): linked? role?     [rule module]
 └── components/             presentational
 
 tests/                    Vitest suites — not runtime-imported, so outside src/
 ├── identity/                one file per behavior at the resolveAccess seam
-└── support/                 db.ts — PGlite + migrations, shared by every suite
+├── sync/                    one file per behavior at the sync(deps) seam
+└── support/                 db.ts — PGlite + migrations; facts.ts — the fake FACTS client
 
 reference/                external-system REFERENCE material (read while building; not imported)
 └── facts/                   api-definitions.json — the FACTS API Swagger spec

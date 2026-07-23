@@ -30,3 +30,33 @@ export const identityLink = pgTable(
 );
 
 export type IdentityLink = typeof identityLink.$inferSelect;
+
+// What a sync run did. `applied` touched the mirror; `failed` rolled back and
+// left it exactly as it was. There is no "refused" outcome: sync applies
+// whatever FACTS says, because flag-don't-revoke makes a bad pull cost flags,
+// not data (see the note on sync()).
+export const syncOutcomeEnum = pgEnum("sync_outcome", ["applied", "failed"]);
+
+export type SyncOutcome = (typeof syncOutcomeEnum.enumValues)[number];
+
+// One row per run, written whatever the outcome — it's the admin screen's only
+// answer to "did the last sync work?". Deliberately written *outside* the
+// mirror transaction, so an abort or failure still leaves a record behind
+// instead of rolling its own evidence back.
+export const syncRun = pgTable("sync_run", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
+  outcome: syncOutcomeEnum().notNull(),
+  peopleCount: integer("people_count").notNull().default(0),
+  studentCount: integer("student_count").notNull().default(0),
+  staffCount: integer("staff_count").notNull().default(0),
+  // Rows newly flagged inactive by this run (flag-don't-revoke).
+  flaggedCount: integer("flagged_count").notNull().default(0),
+  // FACTS people with no identity_link row, at the end of this run.
+  unlinkedCount: integer("unlinked_count").notNull().default(0),
+  // Abort reason or error message; null on a clean run.
+  detail: text(),
+});
+
+export type SyncRun = typeof syncRun.$inferSelect;
