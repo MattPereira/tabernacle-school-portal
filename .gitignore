@@ -20,3 +20,6 @@ scripts/data/
 
 # personal planning
 PLAN.md
+
+# claude code — per-machine permission grants, not shared config
+.claude/settings.local.json
