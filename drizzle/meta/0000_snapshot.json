@@ -1,0 +1,107 @@
+{
+  "id": "78f1ffba-f284-4226-9dbe-4cc586aae2e1",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.identity_link": {
+      "name": "identity_link",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "identity_link_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "google_email": {
+          "name": "google_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facts_person_id": {
+          "name": "facts_person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "identity_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "admin": {
+          "name": "admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "identity_link_google_email_key": {
+          "name": "identity_link_google_email_key",
+          "columns": [
+            {
+              "expression": "google_email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.identity_role": {
+      "name": "identity_role",
+      "schema": "public",
+      "values": [
+        "student",
+        "staff"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
