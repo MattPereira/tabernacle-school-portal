@@ -73,8 +73,12 @@ describe("sync computes the unlinked-people list", () => {
     const result = await sync({ db, facts });
     const byId = new Map(unlinkedOf(result).map((p) => [p.personId, p]));
 
-    expect(byId.get(1)?.suggestions).toEqual(["27beno@tbs.org"]);
-    expect(byId.get(3)?.suggestions).toEqual(["jdoe@tbs.org"]);
+    // The row id travels with the address: the admin's one click points that
+    // existing account at this FACTS person.
+    expect(byId.get(1)?.suggestions).toEqual([
+      { linkId: expect.any(Number), googleEmail: "27beno@tbs.org" },
+    ]);
+    expect(byId.get(3)?.suggestions.map((s) => s.googleEmail)).toEqual(["jdoe@tbs.org"]);
     // Nothing plausible for Bob Beta; a non-person account suggests nobody.
     expect(byId.get(2)?.suggestions).toEqual([]);
   });

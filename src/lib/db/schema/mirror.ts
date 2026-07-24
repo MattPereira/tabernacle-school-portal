@@ -23,6 +23,12 @@ const mirrored = {
   // When sync last saw this record in the FACTS active set. On a flagged row,
   // this is when it was last seen — i.e. roughly when it went inactive.
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
+  // The sync_run that flagged this row, so a misfired run's flags can be cleared
+  // wholesale (ADR-0003). Null iff active — set with `inactive`, cleared with it.
+  // No FK by the same rule as the rest of the mirror: a data wart must never
+  // abort a sync (and identity_link.facts_person_id is a plain int for the
+  // same reason).
+  flaggedByRunId: integer("flagged_by_run_id"),
 };
 
 export const mirrorPerson = pgTable("mirror_person", {

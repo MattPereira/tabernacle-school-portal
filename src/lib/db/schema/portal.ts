@@ -34,20 +34,25 @@ export type IdentityLink = typeof identityLink.$inferSelect;
 // What a sync run did. `applied` touched the mirror; `failed` rolled back and
 // left it exactly as it was. There is no "refused" outcome: sync applies
 // whatever FACTS says, because flag-don't-revoke makes a bad pull cost flags,
-// not data (see the note on sync()).
+// not data (see the note on sync()). These are the two *terminal* outcomes; a
+// null outcome means the run is still in flight or crashed before finishing
+// (ADR-0003).
 export const syncOutcomeEnum = pgEnum("sync_outcome", ["applied", "failed"]);
 
 export type SyncOutcome = (typeof syncOutcomeEnum.enumValues)[number];
 
-// One row per run, written whatever the outcome — it's the admin screen's only
-// answer to "did the last sync work?". Deliberately written *outside* the
-// mirror transaction, so an abort or failure still leaves a record behind
-// instead of rolling its own evidence back.
+// One row per run, created when the run *starts* and finalized when it *ends*
+// (ADR-0003) — so its id exists to stamp onto the rows this run flags, and a
+// crash leaves a visible half-run rather than nothing. It's the admin screen's
+// only answer to "did the last sync work?". Written *outside* the mirror
+// transaction, so an abort or failure still leaves a record behind instead of
+// rolling its own evidence back. `outcome`/`finishedAt` are null until the run
+// finishes.
 export const syncRun = pgTable("sync_run", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
-  finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
-  outcome: syncOutcomeEnum().notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  outcome: syncOutcomeEnum(),
   peopleCount: integer("people_count").notNull().default(0),
   studentCount: integer("student_count").notNull().default(0),
   staffCount: integer("staff_count").notNull().default(0),

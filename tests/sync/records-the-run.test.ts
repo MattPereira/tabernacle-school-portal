@@ -61,7 +61,7 @@ describe("sync records every run", () => {
 
     const [run] = await db.select().from(syncRun);
     expect(run.startedAt).toEqual(startedAt);
-    expect(run.finishedAt.getTime()).toBeGreaterThanOrEqual(startedAt.getTime());
+    expect(run.finishedAt).toEqual(finishedAt);
   });
 
   it("accumulates a history rather than overwriting the last run", async () => {
