@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 import { PageShell } from "@/components/page-shell";
-import { SignInButton } from "@/components/sign-in-button";
-import { SignOutButton } from "@/components/sign-out-button";
+import { SubmitButton } from "@/components/submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getViewer } from "@/lib/auth/viewer";
+
+import { signIn, signOut } from "./actions";
 
 // The walking skeleton's one page. It renders whichever of the three viewer
 // states came back — it does not decide them (ADR-0002 §2).
@@ -20,7 +21,9 @@ export default async function Home() {
             <CardTitle>Sign in</CardTitle>
           </CardHeader>
           <CardContent>
-            <SignInButton />
+            <form action={signIn}>
+              <SubmitButton size="lg">Sign in with your school Google account</SubmitButton>
+            </form>
           </CardContent>
         </Card>
       </PageShell>
@@ -37,7 +40,9 @@ export default async function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SignOutButton />
+            <form action={signOut}>
+              <SubmitButton variant="outline">Sign out</SubmitButton>
+            </form>
           </CardContent>
         </Card>
       </PageShell>
@@ -58,7 +63,9 @@ export default async function Home() {
               Admin
             </Link>
           )}
-          <SignOutButton />
+          <form action={signOut}>
+            <SubmitButton variant="outline">Sign out</SubmitButton>
+          </form>
         </CardContent>
       </Card>
     </PageShell>

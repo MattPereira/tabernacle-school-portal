@@ -1,8 +1,9 @@
 import Link from "next/link";
 
-import { AdminForm, SubmitButton } from "@/components/admin/admin-form";
+import { AdminForm } from "@/components/admin/admin-form";
 import { RoleSelect } from "@/components/admin/role-select";
 import { PageShell } from "@/components/page-shell";
+import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

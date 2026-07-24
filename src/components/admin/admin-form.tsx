@@ -1,12 +1,10 @@
 "use client";
 
 import { CircleCheckIcon, TriangleAlertIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 
 // The contract every admin form shares. It lives here rather than beside the
 // actions because the form owns it: an action's job is to answer in terms the
@@ -53,40 +51,5 @@ export function AdminForm({
         </Alert>
       )}
     </form>
-  );
-}
-
-// A submit button that knows its own form is busy — sync takes tens of seconds
-// against the real FACTS rate limit, and a button that looks idle invites a
-// second click.
-export function SubmitButton({
-  children,
-  name,
-  value,
-  variant,
-  size,
-  className,
-}: {
-  children: ReactNode;
-  name?: string;
-  value?: string;
-  variant?: ComponentProps<typeof Button>["variant"];
-  size?: ComponentProps<typeof Button>["size"];
-  className?: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button
-      type="submit"
-      name={name}
-      value={value}
-      disabled={pending}
-      variant={variant}
-      size={size}
-      className={className}
-    >
-      {pending ? "Working…" : children}
-    </Button>
   );
 }

@@ -10,7 +10,7 @@ src/                      everything the running app imports at runtime
 │                           NO business logic; calls into lib/.
 ├── lib/                    the app's non-UI, non-route code
 │   ├── db/                   schema/ (auth.ts + mirror.ts + portal.ts) + client.ts   [wiring]
-│   ├── auth/                 better-auth instance, browser client, getViewer()  [wiring]
+│   ├── auth/                 better-auth instance + getViewer()              [wiring]
 │   ├── facts/                rate-limited read-only FACTS API client          [wiring]
 │   ├── sync/                 read-only FACTS → DB sync + its admin reads   [rule module]
 │   └── identity/             resolveAccess(email, deps) + link management  [rule module]
@@ -50,6 +50,7 @@ docs/                     CONTEXT.md glossary, adr/ decision records, this file
 
 1. **The `src/` barrier is "does the running app import it?"** — not "is it Next.js?". Framework-free logic still ships, so it's in `src/`. Migrations, seed scripts, data, and external reference do not ship → root.
 2. **`app/` holds no business logic.** Routes/actions/RSC call into `lib/`. If there's an `if` deciding a school rule inside `app/`, it's misfiled.
+   Auth mutations follow the same form → server action pattern as other mutations; their actions are thin better-auth wiring.
 3. **Rule modules accept deps, return results, and never import `next/*`.** `lib/sync` and `lib/identity` take their db handle / FACTS client as arguments so they test without booting Next. Grep a rule module for `next` → should be zero hits. "May they?" is a dep too: the admin writes in `lib/identity` take the actor's `Access` and refuse a non-admin themselves, because a server action is a POST endpoint — the page guard in `lib/auth` protects rendering, not the mutation.
 4. **Schema splits by ownership.** `db/schema/mirror.ts` = read-only FACTS copy (never authoritative); `db/schema/portal.ts` = portal-owned truth (`identity_link`, `sync_run`); `db/schema/auth.ts` = better-auth's own tables, shaped by its adapter and not ours to tune. `identity_link` deliberately holds no FK to `user` — the allowlist exists before anyone signs in.
 5. **External API contracts live in `reference/`, not `docs/` and not `src/`.** Material you read while building (not imported code); the runtime client lives in `src/lib/`.
