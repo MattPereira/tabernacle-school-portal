@@ -1,6 +1,22 @@
 import Link from "next/link";
 
 import { AdminForm, SubmitButton } from "@/components/admin/admin-form";
+import { RoleSelect } from "@/components/admin/role-select";
+import { PageShell } from "@/components/page-shell";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth/viewer";
 import { db } from "@/lib/db/client";
 import { listLinks, type LinkListing } from "@/lib/identity";
@@ -41,179 +57,227 @@ export default async function AdminPage({
   const editing = Number(edit);
 
   return (
-    <main>
-      <h1>Admin</h1>
-      <p>
-        <Link href="/">← Back to the portal</Link>
-      </p>
+    <PageShell title="Admin" back={{ href: "/", label: "Back to the portal" }} className="max-w-5xl">
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>FACTS sync</CardTitle>
+            <CardDescription>
+              {lastRun ? (
+                <>
+                  {lastRun.finishedAt
+                    ? `Last run ${formatWhen(lastRun.finishedAt)}`
+                    : `Last run started ${formatWhen(lastRun.startedAt)}`}{" "}
+                  — <strong className="text-foreground">{lastRun.outcome ?? "no outcome yet"}</strong>.{" "}
+                  {lastRun.outcome === "applied" ? (
+                    <>
+                      {lastRun.peopleCount} people, {lastRun.studentCount} students,{" "}
+                      {lastRun.staffCount} staff; {lastRun.flaggedCount} records newly flagged as
+                      gone from FACTS, {lastRun.unlinkedCount} awaiting a link.
+                    </>
+                  ) : lastRun.outcome === "failed" ? (
+                    // The mirror is untouched: a failed run rolls back (CONTEXT.md, Sync).
+                    <>The mirror was left as it was. {lastRun.detail}</>
+                  ) : (
+                    // The run row is opened at the *start* (ADR-0003), so a null outcome
+                    // means in-flight or crashed and nothing here can tell which. Say
+                    // both rather than accuse a sync that's still running of failing.
+                    <>
+                      It hasn&apos;t recorded an outcome — it is either still running or it was
+                      interrupted. Reload in a moment to see which.
+                    </>
+                  )}
+                </>
+              ) : (
+                "Never run."
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminForm action={runSync}>
+              <SubmitButton>Sync now</SubmitButton>
+            </AdminForm>
+          </CardContent>
+        </Card>
 
-      <section>
-        <h2>FACTS sync</h2>
-        {lastRun ? (
-          <p>
-            {lastRun.finishedAt
-              ? `Last run ${formatWhen(lastRun.finishedAt)}`
-              : `Last run started ${formatWhen(lastRun.startedAt)}`}{" "}
-            — <strong>{lastRun.outcome ?? "no outcome yet"}</strong>.{" "}
-            {lastRun.outcome === "applied" ? (
-              <>
-                {lastRun.peopleCount} people, {lastRun.studentCount} students, {lastRun.staffCount}{" "}
-                staff; {lastRun.flaggedCount} records newly flagged as gone from FACTS,{" "}
-                {lastRun.unlinkedCount} awaiting a link.
-              </>
-            ) : lastRun.outcome === "failed" ? (
-              // The mirror is untouched: a failed run rolls back (CONTEXT.md, Sync).
-              <>The mirror was left as it was. {lastRun.detail}</>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Awaiting a link <Badge variant="secondary">{queue.length}</Badge>
+            </CardTitle>
+            <CardDescription>
+              People FACTS knows about who can&apos;t sign in yet. Sync never links anyone — every
+              row here is a deliberate choice.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {queue.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nobody. Everyone in FACTS has a portal account.
+              </p>
             ) : (
-              // The run row is opened at the *start* (ADR-0003), so a null outcome
-              // means in-flight or crashed and nothing here can tell which. Say
-              // both rather than accuse a sync that's still running of failing.
-              <>
-                It hasn&apos;t recorded an outcome — it is either still running or it was
-                interrupted. Reload in a moment to see which.
-              </>
-            )}
-          </p>
-        ) : (
-          <p>Never run.</p>
-        )}
-        <AdminForm action={runSync}>
-          <SubmitButton>Sync now</SubmitButton>
-        </AdminForm>
-      </section>
-
-      <section>
-        <h2>Awaiting a link ({queue.length})</h2>
-        <p>
-          People FACTS knows about who can&apos;t sign in yet. Sync never links anyone — every row
-          here is a deliberate choice.
-        </p>
-        {queue.length === 0 ? (
-          <p>Nobody. Everyone in FACTS has a portal account.</p>
-        ) : (
-          <ul>
-            {queue.map((person) => (
-              <li key={person.personId}>
-                <UnlinkedRow person={person} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        {/* People, where the run banner counts records — one departing student is
-            flagged in both mirror_person and mirror_student. Both are true; label
-            them so they don't read as a contradiction. */}
-        <h2>Flagged as gone from FACTS ({flagged.length} people)</h2>
-        <p>
-          Sync never deletes — people who leave the FACTS active set are flagged here, not revoked
-          (ADR-0001). If a sync obviously misfired, clear its flags in one click; a healthy re-sync
-          also clears them (ADR-0003).
-        </p>
-        {flagged.length === 0 ? (
-          <p>Nobody flagged.</p>
-        ) : (
-          groupByRun(flagged).map((run) => (
-            <div key={run.runId}>
-              <h3>
-                Sync #{run.runId}, {formatWhen(run.flaggedAt)} ({run.people.length})
-              </h3>
-              <ul>
-                {run.people.map((person) => (
-                  <li key={person.personId}>
-                    {[person.firstName, person.lastName].filter(Boolean).join(" ") || "(no name)"} #
-                    {person.personId}
+              <ul className="space-y-3">
+                {queue.map((person) => (
+                  <li key={person.personId} className="rounded-lg border p-3">
+                    <UnlinkedRow person={person} />
                   </li>
                 ))}
               </ul>
-              <AdminForm action={clearFlags}>
-                <input type="hidden" name="runId" value={run.runId} />
-                <SubmitButton>Clear this sync&apos;s flags</SubmitButton>
-              </AdminForm>
-            </div>
-          ))
-        )}
-      </section>
-
-      <section>
-        <h2>Portal accounts ({links.length})</h2>
-        <p>
-          A row here <em>is</em> the permission to sign in. Removing access is IT&apos;s job —
-          suspending the Google account is the kill switch (ADR-0001).
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Google account</th>
-              <th>FACTS person</th>
-              <th>Role</th>
-              <th>Admin</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {links.map((link) =>
-              link.id === editing ? (
-                <tr key={link.id}>
-                  <td colSpan={5}>
-                    <EditRow link={link} />
-                  </td>
-                </tr>
-              ) : (
-                <tr key={link.id}>
-                  <td>{link.googleEmail}</td>
-                  <td>
-                    {link.factsPersonId ? (
-                      <>
-                        {link.factsName ?? "(not in the mirror)"} #{link.factsPersonId}
-                      </>
-                    ) : (
-                      // Admin-created only; sync can never mint one.
-                      <em>none</em>
-                    )}
-                  </td>
-                  <td>{link.role}</td>
-                  <td>{link.admin ? "yes" : "—"}</td>
-                  <td>
-                    <Link href={`/admin?edit=${link.id}`}>Edit</Link>
-                  </td>
-                </tr>
-              ),
             )}
-          </tbody>
-        </table>
-      </section>
+          </CardContent>
+        </Card>
 
-      <section>
-        <h2>Add a portal account</h2>
-        <AdminForm action={createPortalAccount}>
-          <p>
-            <label>
-              School Google account{" "}
-              <input name="googleEmail" type="email" placeholder="name@tbs.org" required />
-            </label>
-          </p>
-          <p>
-            <label>
-              FACTS person id <input name="factsPersonId" inputMode="numeric" />
-            </label>{" "}
-            <small>Leave blank for someone FACTS doesn&apos;t track.</small>
-          </p>
-          <p>
-            <label>
-              Role <RoleSelect />
-            </label>
-          </p>
-          <p>
-            <label>
-              <input name="admin" type="checkbox" /> Can use this admin screen
-            </label>
-          </p>
-          <SubmitButton>Create account</SubmitButton>
-        </AdminForm>
-      </section>
-    </main>
+        <Card>
+          <CardHeader>
+            {/* People, where the run banner counts records — one departing student is
+                flagged in both mirror_person and mirror_student. Both are true; label
+                them so they don't read as a contradiction. */}
+            <CardTitle className="flex items-center gap-2">
+              Flagged as gone from FACTS <Badge variant="secondary">{flagged.length} people</Badge>
+            </CardTitle>
+            <CardDescription>
+              Sync never deletes — people who leave the FACTS active set are flagged here, not
+              revoked (ADR-0001). If a sync obviously misfired, clear its flags in one click; a
+              healthy re-sync also clears them (ADR-0003).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {flagged.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nobody flagged.</p>
+            ) : (
+              <div className="space-y-3">
+                {groupByRun(flagged).map((run) => (
+                  <div key={run.runId} className="space-y-3 rounded-lg border p-3">
+                    <h3 className="text-sm font-medium">
+                      Sync #{run.runId}, {formatWhen(run.flaggedAt)} ({run.people.length})
+                    </h3>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {run.people.map((person) => (
+                        <li key={person.personId}>
+                          {[person.firstName, person.lastName].filter(Boolean).join(" ") ||
+                            "(no name)"}{" "}
+                          #{person.personId}
+                        </li>
+                      ))}
+                    </ul>
+                    <AdminForm action={clearFlags}>
+                      <input type="hidden" name="runId" value={run.runId} />
+                      <SubmitButton variant="outline" size="sm">
+                        Clear this sync&apos;s flags
+                      </SubmitButton>
+                    </AdminForm>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Portal accounts <Badge variant="secondary">{links.length}</Badge>
+            </CardTitle>
+            <CardDescription>
+              A row here <em>is</em> the permission to sign in. Removing access is IT&apos;s job —
+              suspending the Google account is the kill switch (ADR-0001).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Google account</TableHead>
+                  <TableHead>FACTS person</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Admin</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {links.map((link) =>
+                  link.id === editing ? (
+                    <TableRow key={link.id}>
+                      <TableCell colSpan={5}>
+                        <EditRow link={link} />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow key={link.id}>
+                      <TableCell className="font-medium">{link.googleEmail}</TableCell>
+                      <TableCell>
+                        {link.factsPersonId ? (
+                          <>
+                            {link.factsName ?? (
+                              // A link can name a FACTS person the mirror hasn't seen
+                              // yet — that's a sync that hasn't run, not a fault, and
+                              // the login works either way.
+                              <span className="text-muted-foreground">no synced name yet</span>
+                            )}{" "}
+                            #{link.factsPersonId}
+                          </>
+                        ) : (
+                          // Admin-created only; sync can never mint one.
+                          <em className="text-muted-foreground">none</em>
+                        )}
+                      </TableCell>
+                      <TableCell>{link.role}</TableCell>
+                      <TableCell>
+                        {link.admin ? "yes" : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/admin?edit=${link.id}`}
+                          className={buttonVariants({ variant: "ghost", size: "sm" })}
+                        >
+                          Edit
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ),
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Add a portal account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdminForm action={createPortalAccount} className="max-w-sm space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-google-email">School Google account</Label>
+                <Input
+                  id="new-google-email"
+                  name="googleEmail"
+                  type="email"
+                  placeholder="name@tbs.org"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new-facts-person-id">FACTS person id</Label>
+                <Input id="new-facts-person-id" name="factsPersonId" inputMode="numeric" />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank for someone FACTS doesn&apos;t track.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new-role">Role</Label>
+                <RoleSelect id="new-role" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="new-admin" name="admin" />
+                <Label htmlFor="new-admin">Can use this admin screen</Label>
+              </div>
+              <SubmitButton>Create account</SubmitButton>
+            </AdminForm>
+          </CardContent>
+        </Card>
+      </div>
+    </PageShell>
   );
 }
 
@@ -223,57 +287,70 @@ function UnlinkedRow({ person }: { person: UnlinkedPerson }) {
   const name = [person.firstName, person.lastName].filter(Boolean).join(" ") || "(no name)";
 
   return (
-    <>
-      <strong>{name}</strong> #{person.personId}
+    <div className="space-y-3">
+      <p className="text-sm">
+        <strong className="font-medium">{name}</strong>{" "}
+        <span className="text-muted-foreground">#{person.personId}</span>
+      </p>
       {person.suggestions.map((suggestion) => (
         <AdminForm key={suggestion.linkId} action={confirmSuggestion}>
           <input type="hidden" name="id" value={suggestion.linkId} />
           <input type="hidden" name="factsPersonId" value={person.personId} />
-          <SubmitButton>Link {suggestion.googleEmail}</SubmitButton>
+          <SubmitButton variant="secondary" size="sm">
+            Link {suggestion.googleEmail}
+          </SubmitButton>
         </AdminForm>
       ))}
-      <AdminForm action={createPortalAccount}>
+      <AdminForm action={createPortalAccount} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="factsPersonId" value={person.personId} />
-        <input name="googleEmail" type="email" placeholder="name@tbs.org" required />
+        <Input
+          name="googleEmail"
+          type="email"
+          placeholder="name@tbs.org"
+          aria-label={`School Google account for ${name}`}
+          required
+          className="w-56"
+        />
         {/* Role is the admin's call, never read off FACTS (ADR-0001). */}
-        <SubmitButton name="role" value="student">
+        <SubmitButton name="role" value="student" variant="outline" size="sm">
           Add as student
         </SubmitButton>
-        <SubmitButton name="role" value="staff">
+        <SubmitButton name="role" value="staff" variant="outline" size="sm">
           Add as staff
         </SubmitButton>
       </AdminForm>
-    </>
+    </div>
   );
 }
 
 // Submits every field, so clearing a box really does clear it.
 function EditRow({ link }: { link: LinkListing }) {
   return (
-    <AdminForm action={editPortalAccount}>
+    <AdminForm action={editPortalAccount} className="flex flex-wrap items-end gap-3">
       <input type="hidden" name="id" value={link.id} />
-      <strong>{link.googleEmail}</strong>{" "}
-      <label>
-        FACTS person id{" "}
-        <input name="factsPersonId" inputMode="numeric" defaultValue={link.factsPersonId ?? ""} />
-      </label>{" "}
-      <label>
-        Role <RoleSelect defaultValue={link.role} />
-      </label>{" "}
-      <label>
-        <input name="admin" type="checkbox" defaultChecked={link.admin} /> Admin
-      </label>{" "}
-      <SubmitButton>Save</SubmitButton> <Link href="/admin">Cancel</Link>
+      <strong className="self-center font-medium">{link.googleEmail}</strong>
+      <div className="grid w-40 gap-2">
+        <Label htmlFor={`edit-facts-${link.id}`}>FACTS person id</Label>
+        <Input
+          id={`edit-facts-${link.id}`}
+          name="factsPersonId"
+          inputMode="numeric"
+          defaultValue={link.factsPersonId ?? ""}
+        />
+      </div>
+      <div className="grid w-32 gap-2">
+        <Label htmlFor={`edit-role-${link.id}`}>Role</Label>
+        <RoleSelect id={`edit-role-${link.id}`} defaultValue={link.role} />
+      </div>
+      <div className="flex h-8 items-center gap-2">
+        <Checkbox id={`edit-admin-${link.id}`} name="admin" defaultChecked={link.admin} />
+        <Label htmlFor={`edit-admin-${link.id}`}>Admin</Label>
+      </div>
+      <SubmitButton>Save</SubmitButton>
+      <Link href="/admin" className={buttonVariants({ variant: "ghost" })}>
+        Cancel
+      </Link>
     </AdminForm>
-  );
-}
-
-function RoleSelect({ defaultValue }: { defaultValue?: string }) {
-  return (
-    <select name="role" defaultValue={defaultValue}>
-      <option value="student">student</option>
-      <option value="staff">staff</option>
-    </select>
   );
 }
 
