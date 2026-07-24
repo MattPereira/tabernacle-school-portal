@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { identityLink, mirrorPerson, mirrorStaff, mirrorStudent, syncRun } from "@/lib/db/schema";
@@ -41,8 +41,9 @@ export type UnlinkedPerson = {
 
 // A person a sync flagged as gone from FACTS, tagged with the run that did it
 // (ADR-0003) so the admin can see which run to blame and clear its flags
-// wholesale. Person-centric like UnlinkedPerson — the admin reads names, and
-// mirror_person is where they live.
+// wholesale. Person-centric like UnlinkedPerson: the three mirror tables share
+// one id space, so a person flagged in any of them is one entry here, named
+// from mirror_person when it holds a row for them.
 export type FlaggedPerson = {
   personId: number;
   firstName: string | null;
@@ -236,21 +237,87 @@ export async function latestSyncRun(db: SyncDb): Promise<SyncRun | null> {
 
 // The flagged-inactive queue, each person tagged with the run that flagged them
 // (ADR-0003). The admin groups these by run to spot a misfire and clear it
-// wholesale. The join to sync_run also means a row with no run — an orphan flag
-// from before this existed — simply doesn't list until a fresh run re-flags it.
+// wholesale.
+//
+// Reads all three mirror tables, not only mirror_person. FACTS has students
+// with no /People row (mirror.ts), and clearRunFlags already clears all three —
+// so listing only the person table hides exactly the rows whose clear button
+// the admin needs, and hides them permanently, since no /People row will ever
+// appear to reveal them.
 export async function flaggedPeople(db: SyncDb): Promise<FlaggedPerson[]> {
-  return db
-    .select({
-      personId: mirrorPerson.personId,
-      firstName: mirrorPerson.firstName,
-      lastName: mirrorPerson.lastName,
-      flaggedByRunId: syncRun.id,
-      flaggedAt: syncRun.startedAt,
+  const [people, students, staff] = await Promise.all([
+    db
+      .select({ personId: mirrorPerson.personId, runId: mirrorPerson.flaggedByRunId })
+      .from(mirrorPerson)
+      .where(eq(mirrorPerson.inactive, true)),
+    db
+      .select({ personId: mirrorStudent.studentId, runId: mirrorStudent.flaggedByRunId })
+      .from(mirrorStudent)
+      .where(eq(mirrorStudent.inactive, true)),
+    db
+      .select({ personId: mirrorStaff.staffId, runId: mirrorStaff.flaggedByRunId })
+      .from(mirrorStaff)
+      .where(eq(mirrorStaff.inactive, true)),
+  ]);
+
+  // One entry per person per run: a departing student is flagged in two tables
+  // by the same run, and that is one human to the admin. A flag carrying no run
+  // is an orphan from before ADR-0003 — there is no run to clear it by, so it
+  // can't be listed under one; a fresh run re-flagging them fixes that.
+  const flags = new Map<string, { personId: number; runId: number }>();
+  for (const row of [...people, ...students, ...staff]) {
+    if (row.runId === null) continue;
+    flags.set(`${row.personId}:${row.runId}`, { personId: row.personId, runId: row.runId });
+  }
+  if (flags.size === 0) return [];
+
+  const entries = [...flags.values()];
+  const [names, runs] = await Promise.all([
+    db
+      .select({
+        personId: mirrorPerson.personId,
+        firstName: mirrorPerson.firstName,
+        lastName: mirrorPerson.lastName,
+      })
+      .from(mirrorPerson)
+      .where(
+        inArray(
+          mirrorPerson.personId,
+          entries.map((entry) => entry.personId),
+        ),
+      ),
+    db
+      .select({ id: syncRun.id, startedAt: syncRun.startedAt })
+      .from(syncRun)
+      .where(
+        inArray(
+          syncRun.id,
+          entries.map((entry) => entry.runId),
+        ),
+      ),
+  ]);
+
+  const nameOf = new Map(names.map((name) => [name.personId, name]));
+  const startedAt = new Map(runs.map((run) => [run.id, run.startedAt]));
+
+  return entries
+    .flatMap((entry) => {
+      const flaggedAt = startedAt.get(entry.runId);
+      // Runs are never deleted, so this is unreachable — but an entry with no
+      // run has no clear button, and listing it would only mislead.
+      if (!flaggedAt) return [];
+      const name = nameOf.get(entry.personId);
+      return [
+        {
+          personId: entry.personId,
+          firstName: name?.firstName ?? null,
+          lastName: name?.lastName ?? null,
+          flaggedByRunId: entry.runId,
+          flaggedAt,
+        },
+      ];
     })
-    .from(mirrorPerson)
-    .innerJoin(syncRun, eq(mirrorPerson.flaggedByRunId, syncRun.id))
-    .where(eq(mirrorPerson.inactive, true))
-    .orderBy(mirrorPerson.personId);
+    .sort((a, b) => a.flaggedByRunId - b.flaggedByRunId || a.personId - b.personId);
 }
 
 // Undo a misfired run wholesale (ADR-0003): every row that run flagged, across

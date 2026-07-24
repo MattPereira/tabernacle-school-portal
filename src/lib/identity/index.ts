@@ -92,6 +92,19 @@ const mayAdminister = (actor: Access) => actor.linked && actor.admin;
 export const parseRole = (value: unknown): Role | null =>
   roleEnum.enumValues.includes(value as Role) ? (value as Role) : null;
 
+// A row id arriving from outside — a hidden form field, a query string. Strict
+// on purpose: `Number(null)` is 0 and `Number.isInteger(0)` is true, so a field
+// the browser never sent reads as "row 0" and the action goes on to address a
+// row nobody chose. Ids are assigned from 1 up, so demanding digits refuses the
+// missing field, the empty string, and `1e3`/`0x10` alike.
+//
+// Shared by every id the admin screen posts back — link rows and sync runs —
+// because "did the form actually send me one?" is the same question either way.
+export const parseRowId = (value: unknown): number | null => {
+  const raw = String(value ?? "").trim();
+  return /^[1-9][0-9]*$/.test(raw) ? Number(raw) : null;
+};
+
 // The FACTS person id off a form carries three meanings, two of which share a
 // shape: blank is the deliberate "no FACTS person" (a null link is legitimate),
 // a non-number is a typo to report, and neither may quietly become the other.
@@ -101,8 +114,8 @@ export type ParsedFactsPersonId = { ok: true; value: number | null } | { ok: fal
 export const parseFactsPersonId = (value: unknown): ParsedFactsPersonId => {
   const raw = String(value ?? "").trim();
   if (!raw) return { ok: true, value: null };
-  const id = Number(raw);
-  return Number.isInteger(id) ? { ok: true, value: id } : { ok: false };
+  const id = parseRowId(raw);
+  return id === null ? { ok: false } : { ok: true, value: id };
 };
 
 // Grant a portal account. A `null` factsPersonId is legitimate and expected —

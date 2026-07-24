@@ -54,19 +54,24 @@ export default async function AdminPage({
             {lastRun.finishedAt
               ? `Last run ${formatWhen(lastRun.finishedAt)}`
               : `Last run started ${formatWhen(lastRun.startedAt)}`}{" "}
-            — <strong>{lastRun.outcome ?? "did not finish"}</strong>.{" "}
+            — <strong>{lastRun.outcome ?? "no outcome yet"}</strong>.{" "}
             {lastRun.outcome === "applied" ? (
               <>
                 {lastRun.peopleCount} people, {lastRun.studentCount} students, {lastRun.staffCount}{" "}
-                staff; {lastRun.flaggedCount} newly flagged as gone from FACTS,{" "}
+                staff; {lastRun.flaggedCount} records newly flagged as gone from FACTS,{" "}
                 {lastRun.unlinkedCount} awaiting a link.
               </>
             ) : lastRun.outcome === "failed" ? (
               // The mirror is untouched: a failed run rolls back (CONTEXT.md, Sync).
               <>The mirror was left as it was. {lastRun.detail}</>
             ) : (
-              // No terminal outcome: the run was interrupted mid-flight (ADR-0003).
-              <>It started but never recorded an outcome — it was interrupted.</>
+              // The run row is opened at the *start* (ADR-0003), so a null outcome
+              // means in-flight or crashed and nothing here can tell which. Say
+              // both rather than accuse a sync that's still running of failing.
+              <>
+                It hasn&apos;t recorded an outcome — it is either still running or it was
+                interrupted. Reload in a moment to see which.
+              </>
             )}
           </p>
         ) : (
@@ -97,7 +102,10 @@ export default async function AdminPage({
       </section>
 
       <section>
-        <h2>Flagged as gone from FACTS ({flagged.length})</h2>
+        {/* People, where the run banner counts records — one departing student is
+            flagged in both mirror_person and mirror_student. Both are true; label
+            them so they don't read as a contradiction. */}
+        <h2>Flagged as gone from FACTS ({flagged.length} people)</h2>
         <p>
           Sync never deletes — people who leave the FACTS active set are flagged here, not revoked
           (ADR-0001). If a sync obviously misfired, clear its flags in one click; a healthy re-sync

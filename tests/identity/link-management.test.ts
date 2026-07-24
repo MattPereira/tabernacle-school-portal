@@ -5,7 +5,9 @@ import {
   type Access,
   createLink,
   listLinks,
+  parseFactsPersonId,
   parseRole,
+  parseRowId,
   resolveAccess,
   updateLink,
 } from "@/lib/identity";
@@ -225,6 +227,45 @@ describe("admin link management", () => {
       expect(parseRole("admin")).toBeNull();
       expect(parseRole("")).toBeNull();
       expect(parseRole(null)).toBeNull();
+    });
+  });
+
+  describe("parseRowId", () => {
+    it("reads an id the form actually sent", () => {
+      expect(parseRowId("7")).toBe(7);
+      expect(parseRowId(" 1206161 ")).toBe(1206161);
+    });
+
+    // The whole reason this exists: `Number(null)` is 0 and `Number.isInteger`
+    // waves it through, so a field the browser never sent would address row 0
+    // and the action would report success on a row nobody chose.
+    it("refuses a field the form never sent", () => {
+      expect(parseRowId(null)).toBeNull();
+      expect(parseRowId(undefined)).toBeNull();
+      expect(parseRowId("")).toBeNull();
+      expect(parseRowId("   ")).toBeNull();
+    });
+
+    it("refuses anything that isn't a plain positive whole number", () => {
+      expect(parseRowId("0")).toBeNull();
+      expect(parseRowId("-3")).toBeNull();
+      expect(parseRowId("1.5")).toBeNull();
+      expect(parseRowId("abc")).toBeNull();
+      // Number() would take these; ids are never written this way.
+      expect(parseRowId("1e3")).toBeNull();
+      expect(parseRowId("0x10")).toBeNull();
+    });
+  });
+
+  describe("parseFactsPersonId", () => {
+    // Blank is the deliberate "no FACTS person" — a null link is legitimate —
+    // and must not share a fate with a typo.
+    it("keeps blank separate from garbage", () => {
+      expect(parseFactsPersonId("")).toEqual({ ok: true, value: null });
+      expect(parseFactsPersonId(null)).toEqual({ ok: true, value: null });
+      expect(parseFactsPersonId("1206161")).toEqual({ ok: true, value: 1206161 });
+      expect(parseFactsPersonId("abc")).toEqual({ ok: false });
+      expect(parseFactsPersonId("1e3")).toEqual({ ok: false });
     });
   });
 

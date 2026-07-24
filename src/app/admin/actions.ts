@@ -13,6 +13,7 @@ import {
   type LinkResult,
   parseFactsPersonId,
   parseRole,
+  parseRowId,
   updateLink,
 } from "@/lib/identity";
 import { clearRunFlags, sync } from "@/lib/sync";
@@ -75,8 +76,8 @@ export async function clearFlags(
 ): Promise<AdminActionState> {
   await asAdmin();
 
-  const runId = Number(form.get("runId"));
-  if (!Number.isInteger(runId)) return { error: "That run is no longer valid — reload the page." };
+  const runId = parseRowId(form.get("runId"));
+  if (runId === null) return { error: "That run is no longer valid — reload the page." };
 
   await clearRunFlags(db, runId);
 
@@ -113,8 +114,8 @@ export async function editPortalAccount(
 ): Promise<AdminActionState> {
   const actor = await asAdmin();
 
-  const id = Number(form.get("id"));
-  if (!Number.isInteger(id)) return { error: "That portal account no longer exists." };
+  const id = parseRowId(form.get("id"));
+  if (id === null) return { error: "That portal account no longer exists." };
 
   const role = parseRole(form.get("role"));
   if (!role) return { error: "Pick a role." };
@@ -140,11 +141,11 @@ export async function confirmSuggestion(
 ): Promise<AdminActionState> {
   const actor = await asAdmin();
 
-  const id = Number(form.get("id"));
+  const id = parseRowId(form.get("id"));
   const factsPersonId = parseFactsPersonId(form.get("factsPersonId"));
   // A suggestion always names a real FACTS person, so a blank or garbage id here
   // means the form is stale, not a deliberate null.
-  if (!Number.isInteger(id) || !factsPersonId.ok || factsPersonId.value === null) {
+  if (id === null || !factsPersonId.ok || factsPersonId.value === null) {
     return { error: "That suggestion is no longer valid — reload the page." };
   }
 
