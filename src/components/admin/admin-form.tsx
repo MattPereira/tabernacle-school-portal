@@ -1,8 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { CircleCheckIcon, TriangleAlertIcon } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 // The contract every admin form shares. It lives here rather than beside the
 // actions because the form owns it: an action's job is to answer in terms the
@@ -17,14 +21,37 @@ export type AdminAction = (
 // Wraps a server action so its answer lands next to the form that asked, rather
 // than replacing the page. Presentational: it renders whatever the action said
 // and decides nothing.
-export function AdminForm({ action, children }: { action: AdminAction; children: ReactNode }) {
+// `className` replaces the default rather than merging with it: several of these
+// forms lay their fields out in a row, and `space-y-*` on a flex container puts
+// margins where the gap already is.
+export function AdminForm({
+  action,
+  className = "space-y-3",
+  children,
+}: {
+  action: AdminAction;
+  className?: string;
+  children: ReactNode;
+}) {
   const [state, formAction] = useActionState(action, null);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className={className}>
       {children}
-      {state && "error" in state && <p role="alert">⚠ {state.error}</p>}
-      {state && "notice" in state && <p role="status">✓ {state.notice}</p>}
+      {/* The roles stay as they were. Alert hardcodes role="alert", so the
+          notice is the one that has to say otherwise. */}
+      {state && "error" in state && (
+        <Alert variant="destructive" className="bg-destructive/10">
+          <TriangleAlertIcon />
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+      )}
+      {state && "notice" in state && (
+        <Alert role="status" className="bg-muted/50">
+          <CircleCheckIcon />
+          <AlertDescription>{state.notice}</AlertDescription>
+        </Alert>
+      )}
     </form>
   );
 }
@@ -36,16 +63,30 @@ export function SubmitButton({
   children,
   name,
   value,
+  variant,
+  size,
+  className,
 }: {
   children: ReactNode;
   name?: string;
   value?: string;
+  variant?: ComponentProps<typeof Button>["variant"];
+  size?: ComponentProps<typeof Button>["size"];
+  className?: string;
 }) {
   const { pending } = useFormStatus();
 
   return (
-    <button type="submit" name={name} value={value} disabled={pending}>
+    <Button
+      type="submit"
+      name={name}
+      value={value}
+      disabled={pending}
+      variant={variant}
+      size={size}
+      className={className}
+    >
       {pending ? "Working…" : children}
-    </button>
+    </Button>
   );
 }
