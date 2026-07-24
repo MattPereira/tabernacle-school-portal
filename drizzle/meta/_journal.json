@@ -15,6 +15,20 @@
       "when": 1784840229641,
       "tag": "0001_military_silver_centurion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784847396444,
+      "tag": "0002_hard_black_bird",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784925615222,
+      "tag": "0003_bouncy_the_fallen",
+      "breakpoints": true
     }
   ]
 }

@@ -23,3 +23,4 @@ PLAN.md
 
 # claude code — per-machine permission grants, not shared config
 .claude/settings.local.json
+.claude/settings.local.json.tmp.*

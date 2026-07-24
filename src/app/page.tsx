@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SignInButton } from "@/components/sign-in-button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { getViewer } from "@/lib/auth/viewer";
@@ -30,6 +32,11 @@ export default async function Home() {
     <main>
       <h1>Hi {viewer.name}</h1>
       <p>You&apos;re signed in as {viewer.role === "student" ? "a student" : "staff"}.</p>
+      {viewer.admin && (
+        <p>
+          <Link href="/admin">Admin</Link>
+        </p>
+      )}
       <SignOutButton />
     </main>
   );

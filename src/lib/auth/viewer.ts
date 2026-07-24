@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 
 import { db } from "@/lib/db/client";
 import { type Access, isSchoolDomain, resolveAccess } from "@/lib/identity";
@@ -39,3 +40,28 @@ export async function getViewer(): Promise<Viewer> {
   const { linked: _linked, ...link } = access;
   return { state: "linked", name, email, ...link };
 }
+
+// A signed-in viewer, resolved and linked.
+export type LinkedViewer = Extract<Viewer, { state: "linked" }>;
+
+// Wiring: the admin screen's render guard. 404 rather than 403 — a screen you
+// may not use is a screen that isn't there, as far as you're concerned.
+//
+// This guards rendering only. The boundary that actually matters is inside
+// lib/identity, where every mutation takes the actor's Access and refuses a
+// non-admin itself — a server action is a POST endpoint, so it can be called
+// without ever rendering the page this sits on.
+export async function requireAdmin(): Promise<LinkedViewer> {
+  const viewer = await getViewer();
+  if (viewer.state !== "linked" || !viewer.admin) notFound();
+  return viewer;
+}
+
+// The Access the rule modules want, recovered from the viewer. Handed to
+// createLink/updateLink as their `actor`.
+export const accessOf = (viewer: LinkedViewer): Access => ({
+  linked: true,
+  role: viewer.role,
+  admin: viewer.admin,
+  factsPersonId: viewer.factsPersonId,
+});
