@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { LogOutIcon, UserRoundIcon } from "lucide-react";
 
 import { portalNavigation } from "@/components/portal-navigation";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -80,9 +79,6 @@ export function AppSidebar({
               <UserRoundIcon />
               <span>{viewer.name}</span>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <ThemeToggle />
           </SidebarMenuItem>
           <SidebarMenuItem>
             <form action={signOut}>

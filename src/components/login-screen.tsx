@@ -12,7 +12,7 @@ export function LoginScreen({ signIn }: { signIn: () => Promise<void> }) {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Tabernacle School Portal</CardTitle>
-            <CardDescription className="py-5">Sign in with an @tbs.org account.</CardDescription>
+            <CardDescription className="py-5">Sign in with @tbs.org account</CardDescription>
           </CardHeader>
           <CardFooter>
             <form action={signIn} className="w-full">
