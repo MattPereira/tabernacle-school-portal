@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { signOut } from "@/app/actions";
+import { PortalShell } from "@/components/portal-shell";
 import { canonicalDestination } from "@/lib/auth/destination";
 import { getViewer } from "@/lib/auth/viewer";
 
@@ -11,5 +14,15 @@ export default async function PortalLayout({ children }: { children: ReactNode }
 
   if (viewer.state !== "linked") redirect(canonicalDestination(viewer));
 
-  return children;
+  const sidebarCookie = (await cookies()).get("sidebar_state");
+
+  return (
+    <PortalShell
+      viewer={viewer}
+      defaultSidebarOpen={sidebarCookie?.value !== "false"}
+      signOut={signOut}
+    >
+      {children}
+    </PortalShell>
+  );
 }

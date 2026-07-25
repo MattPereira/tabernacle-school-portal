@@ -1,10 +1,10 @@
-import { PageShell } from "@/components/page-shell";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 
 export function AccessPendingScreen({ name, signOut }: { name: string; signOut: () => Promise<void> }) {
   return (
-    <PageShell title={`Hi ${name}`} className="max-w-lg">
+    <main className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
+      <h1 className="mb-8 text-2xl font-semibold tracking-tight text-balance">Hi {name}</h1>
       <Card>
         <CardHeader>
           <CardDescription>
@@ -17,6 +17,6 @@ export function AccessPendingScreen({ name, signOut }: { name: string; signOut: 
           </form>
         </CardFooter>
       </Card>
-    </PageShell>
+    </main>
   );
 }

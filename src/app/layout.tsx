@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Geist } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 
 import "./globals.css";
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     // requirement, not a papered-over hydration bug.
     <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
