@@ -44,7 +44,7 @@ function settle(result: LinkResult, notice: (email: string) => string): AdminAct
   return { notice: notice(result.link.googleEmail) };
 }
 
-export async function runSync(_previous: AdminActionState): Promise<AdminActionState> {
+export async function runSync(): Promise<AdminActionState> {
   await asAdmin();
 
   let result;

@@ -37,8 +37,14 @@ export async function getViewer(): Promise<Viewer> {
   const access = await resolveAccess(email, { db });
   if (!access.linked) return { state: "unlinked", name, email };
 
-  const { linked: _linked, ...link } = access;
-  return { state: "linked", name, email, ...link };
+  return {
+    state: "linked",
+    name,
+    email,
+    role: access.role,
+    admin: access.admin,
+    factsPersonId: access.factsPersonId,
+  };
 }
 
 // A signed-in viewer, resolved and linked.

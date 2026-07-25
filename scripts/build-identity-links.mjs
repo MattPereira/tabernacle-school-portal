@@ -83,7 +83,10 @@ for (const u of candidates) {
     // space-insensitive retry: "A. J. Card"/"AJ Card", "Galvan - Goble"/"Galvan-Goble"
     const squash = (p) => norm(p.firstName).replace(/ /g, "") + " " + norm(p.lastName).replace(/ /g, "");
     const loose = factsPeople.filter((p) => (p.type === "student") === isStudentOu && squash(p) === squash(u));
-    if (loose.length === 1) (hits = loose), (how = "name-squashed");
+    if (loose.length === 1) {
+      hits = loose;
+      how = "name-squashed";
+    }
   }
   if (hits.length === 1) {
     claim(u, hits[0], how);
