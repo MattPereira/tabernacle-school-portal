@@ -54,6 +54,7 @@ export function AppSidebar({
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     size="lg"
+                    className="group-data-[collapsible=icon]:p-2!"
                     isActive={pathname === item.href}
                     render={<Link href={item.href} />}
                     tooltip={item.label}
@@ -72,6 +73,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
+              className="group-data-[collapsible=icon]:p-2!"
               render={<Link href="/" />}
               tooltip={`${viewer.name} (${viewer.role})`}
             >
@@ -84,7 +86,12 @@ export function AppSidebar({
           </SidebarMenuItem>
           <SidebarMenuItem>
             <form action={signOut}>
-              <SidebarMenuButton size="lg" type="submit" tooltip="Sign out">
+              <SidebarMenuButton
+                size="lg"
+                className="group-data-[collapsible=icon]:p-2!"
+                type="submit"
+                tooltip="Sign out"
+              >
                 <LogOutIcon />
                 <span>Sign out</span>
               </SidebarMenuButton>
