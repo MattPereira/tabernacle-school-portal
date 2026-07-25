@@ -1,11 +1,20 @@
 import Link from "next/link";
+import {
+  CheckCircle2Icon,
+  Clock3Icon,
+  DatabaseIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 
 import { AdminForm } from "@/components/admin/admin-form";
+import { AccountSearch } from "@/components/admin/account-search";
 import { RoleSelect } from "@/components/admin/role-select";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,167 +40,81 @@ import {
 
 export function AdminScreen({
   editing,
+  adding,
+  showAll,
+  query,
   lastRun,
   queue,
   flagged,
   links,
 }: {
   editing: number;
+  adding: boolean;
+  showAll: boolean;
+  query: string;
   lastRun: SyncRun | null;
   queue: UnlinkedPerson[];
   flagged: FlaggedPerson[];
   links: LinkListing[];
 }) {
+  const workCount = queue.length + flagged.length;
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchingLinks = normalizedQuery
+    ? links.filter((link) =>
+        [link.googleEmail, link.factsName, link.factsPersonId?.toString(), link.role]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedQuery)),
+      )
+    : links;
+  const visibleLinks = showAll ? matchingLinks : matchingLinks.slice(0, 10);
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>FACTS sync</CardTitle>
-          <CardDescription>
-            {lastRun ? (
-              <>
-                {lastRun.finishedAt
-                  ? `Last run ${formatWhen(lastRun.finishedAt)}`
-                  : `Last run started ${formatWhen(lastRun.startedAt)}`} {" "}
-                — <strong className="text-foreground">{lastRun.outcome ?? "no outcome yet"}</strong>. {" "}
-                {lastRun.outcome === "applied" ? (
-                  <>
-                    {lastRun.peopleCount} people, {lastRun.studentCount} students, {lastRun.staffCount} staff; {lastRun.flaggedCount} records newly flagged as gone from FACTS, {lastRun.unlinkedCount} awaiting a link.
-                  </>
-                ) : lastRun.outcome === "failed" ? (
-                  <>The mirror was left as it was. {lastRun.detail}</>
-                ) : (
-                  <>It hasn&apos;t recorded an outcome — it is either still running or it was interrupted. Reload in a moment to see which.</>
-                )}
-              </>
-            ) : (
-              "Never run."
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AdminForm action={runSync}>
-            <SubmitButton>Sync now</SubmitButton>
-          </AdminForm>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-4">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
+          <p className="text-muted-foreground">Sync health, admin work, and the portal allowlist.</p>
+        </div>
+        <AdminForm action={runSync}><SubmitButton>Sync FACTS</SubmitButton></AdminForm>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Awaiting a link <Badge variant="secondary">{queue.length}</Badge>
-          </CardTitle>
-          <CardDescription>
-            People FACTS knows about who can&apos;t sign in yet. Sync never links anyone — every row here is a deliberate choice.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {queue.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nobody. Everyone in FACTS has a portal account.</p>
-          ) : (
-            <ul className="space-y-3">
-              {queue.map((person) => (
-                <li key={person.personId} className="rounded-lg border p-3">
-                  <UnlinkedRow person={person} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric icon={DatabaseIcon} label="FACTS sync" value={syncStatus(lastRun)} />
+        <Metric icon={Clock3Icon} label="Last run" value={lastRun?.finishedAt ? formatWhen(lastRun.finishedAt) : "Never"} />
+        <Metric icon={TriangleAlertIcon} label="Needs attention" value={String(workCount)} />
+        <Metric icon={ShieldCheckIcon} label="Portal accounts" value={String(links.length)} />
+      </div>
 
-      <Card>
+      <Card size="sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Flagged as gone from FACTS <Badge variant="secondary">{flagged.length} people</Badge>
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2">Admin work <Badge variant="secondary">{workCount}</Badge></CardTitle>
           <CardDescription>
-            Sync never deletes — people who leave the FACTS active set are flagged here, not revoked (ADR-0001). If a sync obviously misfired, clear its flags in one click; a healthy re-sync also clears them (ADR-0003).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {flagged.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nobody flagged.</p>
-          ) : (
-            <div className="space-y-3">
-              {groupByRun(flagged).map((run) => (
-                <div key={run.runId} className="space-y-3 rounded-lg border p-3">
-                  <h3 className="text-sm font-medium">
-                    Sync #{run.runId}, {formatWhen(run.flaggedAt)} ({run.people.length})
-                  </h3>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {run.people.map((person) => (
-                      <li key={person.personId}>
-                        {[person.firstName, person.lastName].filter(Boolean).join(" ") || "(no name)"} #{person.personId}
-                      </li>
-                    ))}
-                  </ul>
-                  <AdminForm action={clearFlags}>
-                    <input type="hidden" name="runId" value={run.runId} />
-                    <SubmitButton variant="outline" size="sm">Clear this sync&apos;s flags</SubmitButton>
-                  </AdminForm>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Portal accounts <Badge variant="secondary">{links.length}</Badge>
-          </CardTitle>
-          <CardDescription>
-            A row here <em>is</em> the permission to sign in. Removing access is IT&apos;s job — suspending the Google account is the kill switch (ADR-0001).
+            Awaiting links and inactive FACTS records, together. Inactive records are review-only; portal access remains unchanged.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Google account</TableHead>
-                <TableHead>FACTS person</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Admin</TableHead>
-                <TableHead />
+                <TableHead>Type</TableHead>
+                <TableHead>Person</TableHead>
+                <TableHead>Meaning</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {links.map((link) =>
-                link.id === editing ? (
-                  <TableRow key={link.id}>
-                    <TableCell colSpan={5}><EditRow link={link} /></TableCell>
-                  </TableRow>
-                ) : (
-                  <TableRow key={link.id}>
-                    <TableCell className="font-medium">{link.googleEmail}</TableCell>
-                    <TableCell>
-                      {link.factsPersonId ? (
-                        <>
-                          {link.factsName ?? <span className="text-muted-foreground">no synced name yet</span>} #{link.factsPersonId}
-                        </>
-                      ) : (
-                        <em className="text-muted-foreground">none</em>
-                      )}
-                    </TableCell>
-                    <TableCell>{link.role}</TableCell>
-                    <TableCell>{link.admin ? "yes" : <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="text-right">
-                      <Link href={`/admin?edit=${link.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>Edit</Link>
-                    </TableCell>
-                  </TableRow>
-                ),
-              )}
+              {queue.map((person) => <UnlinkedWorkRow key={person.personId} person={person} />)}
+              {groupByRun(flagged).map((run) => <FlaggedWorkRow key={run.runId} run={run} />)}
+              {workCount === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground"><CheckCircle2Icon className="mr-2 inline" />Nothing needs attention.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Add a portal account</CardTitle></CardHeader>
+      {adding && <Card id="add-account">
+        <CardHeader><CardTitle>Add a portal account</CardTitle><CardDescription>Create a portal-owned login identity, optionally linked to FACTS.</CardDescription></CardHeader>
         <CardContent>
-          <AdminForm action={createPortalAccount} className="max-w-sm space-y-4">
+          <AdminForm action={createPortalAccount} className="flex max-w-sm flex-col gap-4">
             <div className="grid gap-2">
               <Label htmlFor="new-google-email">School Google account</Label>
               <Input id="new-google-email" name="googleEmail" type="email" placeholder="name@tbs.org" required />
@@ -210,19 +133,93 @@ export function AdminScreen({
               <Label htmlFor="new-admin">Can use this admin screen</Label>
             </div>
             <SubmitButton>Create account</SubmitButton>
+            <Link href="/admin" className={buttonVariants({ variant: "ghost" })}>Cancel</Link>
           </AdminForm>
+        </CardContent>
+      </Card>}
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">Portal accounts <Badge variant="secondary">{links.length}</Badge></CardTitle>
+          <CardDescription>A row is permission to sign in. Search the allowlist; Workspace suspension remains the kill switch.</CardDescription>
+          <CardAction>
+            <Link href="/admin?add=1#add-account" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <PlusIcon data-icon="inline-start" /> Add portal account
+            </Link>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <AccountSearch key={query} query={query} />
+          <Table>
+            <TableHeader><TableRow><TableHead>Google account</TableHead><TableHead>FACTS person</TableHead><TableHead>Role</TableHead><TableHead>Admin</TableHead><TableHead /></TableRow></TableHeader>
+            <TableBody>
+              {visibleLinks.map((link) => link.id === editing ? (
+                <TableRow key={link.id}><TableCell colSpan={5}><EditRow link={link} /></TableCell></TableRow>
+              ) : (
+                <TableRow key={link.id}>
+                  <TableCell className="font-medium">{link.googleEmail}</TableCell>
+                  <TableCell>{link.factsPersonId ? <>{link.factsName ?? <span className="text-muted-foreground">no synced name yet</span>} #{link.factsPersonId}</> : <em className="text-muted-foreground">none</em>}</TableCell>
+                  <TableCell>{link.role}</TableCell>
+                  <TableCell>{link.admin ? "yes" : <span className="text-muted-foreground">—</span>}</TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/admin?edit=${link.id}${showAll ? "&all=1" : ""}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+                      className={buttonVariants({ variant: "ghost", size: "sm" })}
+                    >
+                      Edit
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {visibleLinks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No portal accounts match.</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+          {!showAll && matchingLinks.length > visibleLinks.length && (
+            <Link href={`/admin?all=1${query ? `&q=${encodeURIComponent(query)}` : ""}`} className={buttonVariants({ variant: "ghost" })}>View all {matchingLinks.length} matching accounts</Link>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function UnlinkedRow({ person }: { person: UnlinkedPerson }) {
-  const name = [person.firstName, person.lastName].filter(Boolean).join(" ") || "(no name)";
+function UnlinkedWorkRow({ person }: { person: UnlinkedPerson }) {
+  return (
+    <TableRow>
+      <TableCell><Badge>Awaiting link</Badge></TableCell>
+      <TableCell className="font-medium">{personName(person)} <span className="text-muted-foreground">#{person.personId}</span></TableCell>
+      <TableCell className="text-muted-foreground">Cannot sign in yet</TableCell>
+      <TableCell><UnlinkedRow person={person} compact /></TableCell>
+    </TableRow>
+  );
+}
+
+function FlaggedWorkRow({ run }: { run: ReturnType<typeof groupByRun>[number] }) {
+  return (
+    <TableRow>
+      <TableCell><Badge variant="outline">Inactive</Badge></TableCell>
+      <TableCell className="font-medium">{run.people.map(personName).join(", ")}</TableCell>
+      <TableCell className="text-muted-foreground">Sync #{run.runId}; access unchanged</TableCell>
+      <TableCell className="text-right">
+        <AdminForm action={clearFlags}>
+          <input type="hidden" name="runId" value={run.runId} />
+          <SubmitButton variant="ghost" size="sm">Clear sync flags</SubmitButton>
+        </AdminForm>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function Metric({ icon: Icon, label, value }: { icon: typeof DatabaseIcon; label: string; value: string }) {
+  return <Card size="sm"><CardHeader><CardDescription className="flex items-center gap-2"><Icon /> {label}</CardDescription><CardTitle>{value}</CardTitle></CardHeader></Card>;
+}
+
+function UnlinkedRow({ person, compact = false }: { person: UnlinkedPerson; compact?: boolean }) {
+  const name = personName(person);
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm"><strong className="font-medium">{name}</strong> <span className="text-muted-foreground">#{person.personId}</span></p>
+    <div className="flex flex-wrap justify-end gap-2">
+      {!compact && <p className="text-sm"><strong className="font-medium">{name}</strong> <span className="text-muted-foreground">#{person.personId}</span></p>}
       {person.suggestions.map((suggestion) => (
         <AdminForm key={suggestion.linkId} action={confirmSuggestion}>
           <input type="hidden" name="id" value={suggestion.linkId} />
@@ -230,7 +227,7 @@ function UnlinkedRow({ person }: { person: UnlinkedPerson }) {
           <SubmitButton variant="secondary" size="sm">Link {suggestion.googleEmail}</SubmitButton>
         </AdminForm>
       ))}
-      <AdminForm action={createPortalAccount} className="flex flex-wrap items-center gap-2">
+      <AdminForm action={createPortalAccount} className="flex flex-wrap items-center justify-end gap-2">
         <input type="hidden" name="factsPersonId" value={person.personId} />
         <Input name="googleEmail" type="email" placeholder="name@tbs.org" aria-label={`School Google account for ${name}`} required className="w-56" />
         <SubmitButton name="role" value="student" variant="outline" size="sm">Add as student</SubmitButton>
@@ -274,3 +271,7 @@ function groupByRun(flagged: FlaggedPerson[]) {
 }
 
 const formatWhen = (at: Date) => at.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+const personName = (person: { firstName: string | null; lastName: string | null }) =>
+  [person.firstName, person.lastName].filter(Boolean).join(" ") || "(no name)";
+const syncStatus = (lastRun: SyncRun | null) =>
+  !lastRun ? "Never synced" : lastRun.outcome === "applied" ? "Ready" : lastRun.outcome === "failed" ? "Failed" : "Unfinished";

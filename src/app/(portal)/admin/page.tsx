@@ -11,12 +11,12 @@ import { flaggedPeople, latestSyncRun, unlinkedPeople } from "@/lib/sync";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ add?: string; all?: string; edit?: string; q?: string }>;
 }) {
   const viewer = await getViewer();
   if (viewer.state !== "linked" || !viewer.admin) redirect("/");
 
-  const [{ edit }, lastRun, queue, flagged, links] = await Promise.all([
+  const [{ add, all, edit, q }, lastRun, queue, flagged, links] = await Promise.all([
     searchParams,
     latestSyncRun(db),
     unlinkedPeople(db),
@@ -27,6 +27,9 @@ export default async function AdminPage({
   return (
     <AdminScreen
       editing={Number(edit)}
+      adding={add === "1"}
+      showAll={all === "1"}
+      query={q ?? ""}
       lastRun={lastRun}
       queue={queue}
       flagged={flagged}
