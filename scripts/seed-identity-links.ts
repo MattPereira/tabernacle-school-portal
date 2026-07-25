@@ -14,9 +14,9 @@
 // without a human (ADR-0001, Decision 5).
 import { readFile } from "node:fs/promises";
 
-import { neon } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
 import { identityLink, type Role } from "@/lib/db/schema";
 import { isSchoolDomain, normalizeEmail, SCHOOL_DOMAIN } from "@/lib/identity";
@@ -33,7 +33,8 @@ type MatcherLink = {
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not set");
 
-const db = drizzle(neon(connectionString));
+const pool = new Pool({ connectionString, max: 1 });
+const db = drizzle({ client: pool });
 
 const pairs: MatcherLink[] = JSON.parse(
   await readFile(new URL("data/identity-links.json", import.meta.url), "utf8"),
@@ -57,15 +58,19 @@ if (skipped.length) {
   console.warn(`Skipped ${skipped.length} non-${SCHOOL_DOMAIN} address(es): ${skipped.join(", ")}`);
 }
 
-await db
-  .insert(identityLink)
-  .values(rows)
-  .onConflictDoUpdate({
-    target: identityLink.googleEmail,
-    // facts_person_id only. role and admin are portal-owned and stay as they
-    // are — see the header note.
-    set: { factsPersonId: sql`excluded.facts_person_id` },
-  });
+try {
+  await db
+    .insert(identityLink)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: identityLink.googleEmail,
+      // facts_person_id only. role and admin are portal-owned and stay as they
+      // are — see the header note.
+      set: { factsPersonId: sql`excluded.facts_person_id` },
+    });
 
-const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(identityLink);
-console.log(`Seeded ${rows.length} link rows; identity_link now holds ${count}.`);
+  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(identityLink);
+  console.log(`Seeded ${rows.length} link rows; identity_link now holds ${count}.`);
+} finally {
+  await pool.end();
+}
