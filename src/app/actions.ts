@@ -9,7 +9,9 @@ import { auth } from "@/lib/auth";
 // the browser where the completed mutation belongs.
 export async function signIn() {
   const { url } = await auth.api.signInSocial({
-    body: { provider: "google" },
+    // Every successful login begins at the canonical portal destination.  The
+    // portal boundary will then route an unlinked account to its holding page.
+    body: { provider: "google", callbackURL: "/" },
   });
 
   if (!url) throw new Error("Google sign-in did not return a redirect URL.");
@@ -18,5 +20,5 @@ export async function signIn() {
 
 export async function signOut() {
   await auth.api.signOut({ headers: await headers() });
-  redirect("/");
+  redirect("/login");
 }

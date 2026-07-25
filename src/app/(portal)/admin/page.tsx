@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AdminForm } from "@/components/admin/admin-form";
 import { RoleSelect } from "@/components/admin/role-select";
@@ -18,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { requireAdmin } from "@/lib/auth/viewer";
+import { getViewer } from "@/lib/auth/viewer";
 import { db } from "@/lib/db/client";
 import { listLinks, type LinkListing } from "@/lib/identity";
 import {
@@ -45,7 +46,8 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ edit?: string }>;
 }) {
-  await requireAdmin();
+  const viewer = await getViewer();
+  if (viewer.state !== "linked" || !viewer.admin) redirect("/");
 
   const [{ edit }, lastRun, queue, flagged, links] = await Promise.all([
     searchParams,
