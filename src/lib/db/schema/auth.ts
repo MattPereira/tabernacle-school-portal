@@ -1,9 +1,7 @@
 // better-auth's own tables. Owned by the library, not by us — the shape is
 // dictated by its adapter, so nothing here should be hand-tuned. Kept out of
-// portal.ts because that file is *portal truth* (the allowlist, sync runs);
-// these are session plumbing. `identity_link` deliberately has no FK to `user`:
-// the allowlist exists before anyone signs in, and login is one lookup keyed by
-// email (ADR-0001).
+// portal.ts because that file is portal operational state; these are session
+// plumbing only. Access is always derived from the FACTS snapshot.
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {

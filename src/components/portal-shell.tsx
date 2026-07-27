@@ -10,11 +10,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import type { LinkedViewer } from "@/lib/auth/viewer";
+import type { StaffViewer } from "@/lib/auth/viewer";
 
 const pageLocations: Record<string, string> = {
   "/": "Home",
-  "/admin": "Admin",
 };
 
 export function PortalShell({
@@ -23,7 +22,7 @@ export function PortalShell({
   signOut,
   children,
 }: {
-  viewer: LinkedViewer;
+  viewer: StaffViewer;
   defaultSidebarOpen: boolean;
   signOut: () => Promise<void>;
   children: ReactNode;

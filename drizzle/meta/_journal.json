@@ -36,6 +36,13 @@
       "when": 1785188695127,
       "tag": "0004_rename_facts_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785193118000,
+      "tag": "0005_derive_facts_identity",
+      "breakpoints": true
     }
   ]
 }

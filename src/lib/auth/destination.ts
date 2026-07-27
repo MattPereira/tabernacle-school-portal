@@ -7,9 +7,10 @@ export function canonicalDestination({ state }: Pick<Viewer, "state">) {
   switch (state) {
     case "anonymous":
       return "/login";
-    case "unlinked":
-      return "/access-pending";
-    case "linked":
+    case "unmatched":
+    case "student":
+      return "/";
+    case "staff":
       return "/";
   }
 }

@@ -5,8 +5,9 @@ import { canonicalDestination } from "@/lib/auth/destination";
 describe("canonicalDestination", () => {
   it.each([
     ["anonymous", "/login"],
-    ["unlinked", "/access-pending"],
-    ["linked", "/"],
+    ["unmatched", "/"],
+    ["student", "/"],
+    ["staff", "/"],
   ] as const)("sends %s viewers to %s", (state, destination) => {
     expect(canonicalDestination({ state })).toBe(destination);
   });

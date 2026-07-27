@@ -20,18 +20,18 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { LinkedViewer } from "@/lib/auth/viewer";
+import type { StaffViewer } from "@/lib/auth/viewer";
 
 export function AppSidebar({
   viewer,
   signOut,
 }: {
-  viewer: LinkedViewer;
+  viewer: StaffViewer;
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const navigation = portalNavigation(viewer);
+  const navigation = portalNavigation();
 
   useEffect(() => {
     setOpenMobile(false);
@@ -74,7 +74,7 @@ export function AppSidebar({
               size="lg"
               className="group-data-[collapsible=icon]:p-2!"
               render={<Link href="/" />}
-              tooltip={`${viewer.name} (${viewer.role})`}
+              tooltip={`${viewer.name} (staff)`}
             >
               <UserRoundIcon />
               <span>{viewer.name}</span>

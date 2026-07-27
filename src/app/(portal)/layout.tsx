@@ -12,7 +12,7 @@ import { getViewer } from "@/lib/auth/viewer";
 export default async function PortalLayout({ children }: { children: ReactNode }) {
   const viewer = await getViewer();
 
-  if (viewer.state !== "linked") redirect(canonicalDestination(viewer));
+  if (viewer.state !== "staff") redirect(canonicalDestination(viewer));
 
   const sidebarCookie = (await cookies()).get("sidebar_state");
 

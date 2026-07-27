@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { identityLink, factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
+import { factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
 import { resolveAccess } from "@/lib/identity";
 import { sync } from "@/lib/sync";
 
@@ -27,7 +27,7 @@ describe("sync flags, never revokes", () => {
   const twoStudents = fakeFacts({
     students: [student(1), student(2)],
     staff: [staffMember(3)],
-    people: [person(1, "Ann", "Alpha"), person(2, "Bob", "Beta"), person(3, "Cy", "Gamma")],
+    people: [person(1, "Ann", "Alpha"), person(2, "Bob", "Beta", "bob@tbs.org"), person(3, "Cy", "Gamma")],
   });
 
   it("flags a departed person instead of deleting them", async () => {
@@ -50,14 +50,9 @@ describe("sync flags, never revokes", () => {
     expect(stillHere.inactive).toBe(false);
   });
 
-  it("leaves login working for someone FACTS dropped", async () => {
+  it("leaves access working for someone FACTS dropped", async () => {
     // The whole point of flag-don't-revoke: FACTS is not the kill switch, and
     // a sync must never be able to lock a person out (CONTEXT.md, Sync).
-    await db.insert(identityLink).values({
-      googleEmail: "bob@tbs.org",
-      factsPersonId: 2,
-      role: "student",
-    });
     await sync({ db, facts: twoStudents });
 
     await sync({
@@ -69,30 +64,7 @@ describe("sync flags, never revokes", () => {
       }),
     });
 
-    expect(await resolveAccess("bob@tbs.org", { db })).toMatchObject({
-      linked: true,
-      role: "student",
-      factsPersonId: 2,
-    });
-  });
-
-  it("never deletes or edits identity_link rows", async () => {
-    await db.insert(identityLink).values([
-      { googleEmail: "bob@tbs.org", factsPersonId: 2, role: "student", admin: true },
-      { googleEmail: "ghost@tbs.org", factsPersonId: 999999, role: "staff" },
-    ]);
-    const before = await db.select().from(identityLink);
-
-    await sync({ db, facts: twoStudents });
-    await sync({ db, facts: fakeFacts({ students: [student(1)], people: [person(1, "Ann", "Alpha")] }) });
-
-    expect(await db.select().from(identityLink)).toEqual(before);
-  });
-
-  it("never mints a link row for an unlinked FACTS person", async () => {
-    await sync({ db, facts: twoStudents });
-
-    expect(await db.select().from(identityLink)).toHaveLength(0);
+    await expect(resolveAccess("bob@tbs.org", { db })).resolves.toEqual({ kind: "student" });
   });
 
   it("un-flags a person who returns to FACTS", async () => {

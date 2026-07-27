@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { identityLink, syncRun } from "@/lib/db/schema";
+import { syncRun } from "@/lib/db/schema";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
@@ -22,13 +22,7 @@ describe("sync records every run", () => {
 
   beforeEach(() => resetSync(db));
 
-  it("writes one sync_run with the counts the admin screen shows", async () => {
-    await db.insert(identityLink).values({
-      googleEmail: "bob@tbs.org",
-      factsPersonId: 2,
-      role: "student",
-    });
-
+  it("writes one sync_run with its outcome and counts", async () => {
     const result = await sync({
       db,
       facts: fakeFacts({
@@ -46,7 +40,6 @@ describe("sync records every run", () => {
       studentCount: 2,
       staffCount: 1,
       flaggedCount: 0,
-      unlinkedCount: 2,
       detail: null,
     });
     expect(result).toMatchObject({ runId: runs[0].id });

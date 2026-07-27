@@ -1,7 +1,6 @@
 // Read-only FACTS snapshot (students / people / staff). NEVER authoritative.
 // FACTS always wins and there is no write-back (CONTEXT.md, Sync). Nothing here
-// gates access — that is identity_link's job, so a stale or broken snapshot can
-// never lock anyone out.
+// gates access at request time, including inactive rows.
 import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 // The FACTS personId is the natural key across all three tables — FACTS mints
@@ -16,27 +15,19 @@ import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 // Columns every FACTS snapshot table carries, so "is this still in FACTS?" is asked
 // the same way everywhere.
 const snapshotFields = {
-  // Flag-don't-revoke: a record that leaves the FACTS active set is flagged for
-  // the admin, never deleted. Sync never revokes access; Workspace suspension
-  // is the real kill switch (CONTEXT.md, Sync).
+  // A record that leaves the FACTS active set is retained and flagged inactive.
+  // Sync never revokes access; Workspace suspension is the real kill switch.
   inactive: boolean().notNull().default(false),
   // When sync last saw this record in the FACTS active set. On a flagged row,
   // this is when it was last seen — i.e. roughly when it went inactive.
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
-  // The sync_run that flagged this row, so a misfired run's flags can be cleared
-  // wholesale (ADR-0003). Null iff active — set with `inactive`, cleared with it.
-  // No FK by the same rule as the rest of the FACTS snapshot: a data wart must never
-  // abort a sync (and identity_link.facts_person_id is a plain int for the
-  // same reason).
-  flaggedByRunId: integer("flagged_by_run_id"),
 };
 
 export const factsPerson = pgTable("facts_person", {
   personId: integer("person_id").primaryKey(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  // Contact email — FACTS owns it. Stored in the FACTS snapshot for the office to read; the portal
-  // never uses it for auth and never writes it back (ADR-0001 §3).
+  // Contact email — FACTS owns it and request-time identity derives from it.
   contactEmail: text("contact_email"),
   ...snapshotFields,
 });

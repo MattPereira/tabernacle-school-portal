@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { identityLink } from "@/lib/db/schema";
+import { factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
 import { resolveAccess } from "@/lib/identity";
 
 import { createTestDb, type TestDb } from "../support/db";
@@ -8,6 +8,7 @@ import { createTestDb, type TestDb } from "../support/db";
 describe("resolveAccess", () => {
   let harness: TestDb;
   let db: TestDb["db"];
+  const seenAt = new Date("2026-07-27T00:00:00Z");
 
   beforeAll(async () => {
     harness = await createTestDb();
@@ -19,122 +20,78 @@ describe("resolveAccess", () => {
   });
 
   beforeEach(async () => {
-    await db.delete(identityLink);
+    await db.delete(factsStaff);
+    await db.delete(factsStudent);
+    await db.delete(factsPerson);
   });
 
-  it("resolves a linked login to its portal-owned role and admin flag", async () => {
-    await db.insert(identityLink).values({
-      googleEmail: "27beno@tbs.org",
-      factsPersonId: 1206161,
-      role: "student",
-      admin: false,
-    });
+  async function person(id: number, contactEmail: string, inactive = false) {
+    await db.insert(factsPerson).values({ personId: id, contactEmail, inactive, lastSeenAt: seenAt });
+  }
 
-    const access = await resolveAccess("27beno@tbs.org", { db });
+  it("grants exactly one staff contact-email match", async () => {
+    await person(1, "staff@tbs.org");
+    await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
 
-    expect(access).toEqual({
-      linked: true,
-      role: "student",
-      admin: false,
-      factsPersonId: 1206161,
-    });
+    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
   });
 
-  it("reports a tbs.org login with no link row as unlinked", async () => {
-    // office@, class accounts and devices authenticate fine — the link table is
-    // the allowlist, so they land on the holding page rather than an error.
-    const access = await resolveAccess("office@tbs.org", { db });
+  it("normalizes trim and casing only", async () => {
+    await person(1, "staff+portal@tbs.org");
+    await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
 
-    expect(access).toEqual({ linked: false });
+    await expect(resolveAccess("  STAFF+PORTAL@TBS.ORG  ", { db })).resolves.toEqual({ kind: "staff" });
+    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
+    await expect(resolveAccess("staffportal@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
   });
 
-  it("resolves a link row that has no FACTS person", async () => {
-    // ~7 active staff (incl. a 3rd-grade teacher) exist in Workspace but not in
-    // FACTS and never will. A row is a portal account, optionally linked.
-    await db.insert(identityLink).values({
-      googleEmail: "teacher@tbs.org",
-      factsPersonId: null,
-      role: "staff",
-    });
+  it("rejects identities outside the school domain", async () => {
+    await person(1, "staff@gmail.com");
+    await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
 
-    const access = await resolveAccess("teacher@tbs.org", { db });
-
-    expect(access).toEqual({
-      linked: true,
-      role: "staff",
-      admin: false,
-      factsPersonId: null,
-    });
+    await expect(resolveAccess("staff@gmail.com", { db })).resolves.toEqual({ kind: "unmatched" });
   });
 
-  it("surfaces the admin flag independently of role", async () => {
-    await db.insert(identityLink).values({
-      googleEmail: "principal@tbs.org",
-      factsPersonId: 1203006,
-      role: "staff",
-      admin: true,
-    });
+  it("returns student-only for exactly one student match", async () => {
+    await person(1, "student@tbs.org");
+    await db.insert(factsStudent).values({ studentId: 1, lastSeenAt: seenAt });
 
-    const access = await resolveAccess("principal@tbs.org", { db });
-
-    expect(access).toEqual({
-      linked: true,
-      role: "staff",
-      admin: true,
-      factsPersonId: 1203006,
-    });
+    await expect(resolveAccess("student@tbs.org", { db })).resolves.toEqual({ kind: "student" });
   });
 
-  it("matches a login whatever casing the OAuth provider hands back", async () => {
-    // The allowlist is seeded lowercase from the Workspace export; the gate must
-    // not turn someone away over casing it doesn't control.
-    await db.insert(identityLink).values({
-      googleEmail: "27beno@tbs.org",
-      factsPersonId: 1206161,
-      role: "student",
-    });
+  it("fails closed for no match and same-role ambiguity", async () => {
+    await expect(resolveAccess("missing@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
 
-    const access = await resolveAccess("  27BenO@TBS.org  ", { db });
-
-    expect(access).toEqual({
-      linked: true,
-      role: "student",
-      admin: false,
-      factsPersonId: 1206161,
-    });
-  });
-
-  it("refuses a second link row for the same login identity", async () => {
-    // One login can never resolve to two people — uniqueness is on google_email.
-    await db.insert(identityLink).values({
-      googleEmail: "staffer@tbs.org",
-      factsPersonId: 1203006,
-      role: "staff",
-    });
-
-    await expect(
-      db.insert(identityLink).values({
-        googleEmail: "staffer@tbs.org",
-        factsPersonId: 1203009,
-        role: "student",
-      }),
-    ).rejects.toThrow();
-
-    expect(await resolveAccess("staffer@tbs.org", { db })).toMatchObject({
-      role: "staff",
-      factsPersonId: 1203006,
-    });
-  });
-
-  it("lets two logins resolve to the same FACTS person", async () => {
-    // facts_person_id is deliberately non-unique: a staffer's spare account is
-    // a second portal account for one person, which is fine.
-    await db.insert(identityLink).values([
-      { googleEmail: "jane@tbs.org", factsPersonId: 1203006, role: "staff" },
-      { googleEmail: "j.doe@tbs.org", factsPersonId: 1203006, role: "staff" },
+    await person(1, "shared@tbs.org");
+    await person(2, "shared@tbs.org");
+    await db.insert(factsStaff).values([
+      { staffId: 1, lastSeenAt: seenAt },
+      { staffId: 2, lastSeenAt: seenAt },
     ]);
 
-    expect(await resolveAccess("jane@tbs.org", { db })).toMatchObject({ factsPersonId: 1203006 });
-    expect(await resolveAccess("j.doe@tbs.org", { db })).toMatchObject({ factsPersonId: 1203006 });
+    await expect(resolveAccess("shared@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
+  });
+
+  it("permanently prefers a unique staff match over student matches", async () => {
+    await person(1, "family@tbs.org");
+    await person(2, "family@tbs.org");
+    await person(3, "family@tbs.org");
+    await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
+    await db.insert(factsStudent).values([
+      { studentId: 2, lastSeenAt: seenAt },
+      { studentId: 3, lastSeenAt: seenAt },
+    ]);
+
+    await expect(resolveAccess("family@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
+  });
+
+  it("matches inactive snapshot rows in every table", async () => {
+    await person(1, "staff@tbs.org", true);
+    await db.insert(factsStaff).values({ staffId: 1, inactive: true, lastSeenAt: seenAt });
+    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
+
+    await person(2, "student@tbs.org", true);
+    await db.insert(factsStudent).values({ studentId: 2, inactive: true, lastSeenAt: seenAt });
+    await expect(resolveAccess("student@tbs.org", { db })).resolves.toEqual({ kind: "student" });
   });
 });
