@@ -29,6 +29,13 @@
       "when": 1784925615222,
       "tag": "0003_bouncy_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785188695127,
+      "tag": "0004_rename_facts_snapshot",
+      "breakpoints": true
     }
   ]
 }

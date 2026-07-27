@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
-import { identityLink, mirrorPerson, mirrorStaff, mirrorStudent, syncRun } from "@/lib/db/schema";
+import { identityLink, factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
 import type * as schema from "@/lib/db/schema";
 import type { SyncRun } from "@/lib/db/schema";
 import type { FactsClient, FactsPerson } from "@/lib/facts";
@@ -41,9 +41,9 @@ export type UnlinkedPerson = {
 
 // A person a sync flagged as gone from FACTS, tagged with the run that did it
 // (ADR-0003) so the admin can see which run to blame and clear its flags
-// wholesale. Person-centric like UnlinkedPerson: the three mirror tables share
+// wholesale. Person-centric like UnlinkedPerson: the three FACTS snapshot tables share
 // one id space, so a person flagged in any of them is one entry here, named
-// from mirror_person when it holds a row for them.
+// from facts_person when it holds a row for them.
 export type FlaggedPerson = {
   personId: number;
   firstName: string | null;
@@ -78,7 +78,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
   const startedAt = now();
 
   // Open the run before touching FACTS (ADR-0003): its id is what stamps the
-  // rows this run flags, and the row is written outside the mirror transaction,
+  // rows this run flags, and the row is written outside the FACTS snapshot transaction,
   // so a crash leaves a visible half-run (null outcome) instead of nothing.
   const [opened] = await db.insert(syncRun).values({ startedAt }).returning({ id: syncRun.id });
   const runId = opened.id;
@@ -114,7 +114,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
 
     const incoming = { people: people.length, students: students.length, staff: staff.length };
 
-    // All-or-nothing: every mirrored table moves together or none of them do,
+    // All-or-nothing: every FACTS snapshot table moves together or none of them do,
     // so a mid-sync failure can never leave students pointing at last week's
     // staff (CONTEXT.md, Sync).
     const flagged = await db.transaction(async (tx) => {
@@ -123,7 +123,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
 
       if (people.length) {
         await tx
-          .insert(mirrorPerson)
+          .insert(factsPerson)
           .values(
             people.map((p) => ({
               personId: p.personId,
@@ -134,7 +134,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
             })),
           )
           .onConflictDoUpdate({
-            target: mirrorPerson.personId,
+            target: factsPerson.personId,
             set: {
               firstName: sql`excluded.first_name`,
               lastName: sql`excluded.last_name`,
@@ -150,15 +150,15 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
       }
       count += await flagMissing(
         tx,
-        mirrorPerson,
-        mirrorPerson.personId,
+        factsPerson,
+        factsPerson.personId,
         people.map((p) => p.personId),
         runId,
       );
 
       if (students.length) {
         await tx
-          .insert(mirrorStudent)
+          .insert(factsStudent)
           .values(
             students.map((s) => ({
               studentId: s.studentId,
@@ -168,7 +168,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
             })),
           )
           .onConflictDoUpdate({
-            target: mirrorStudent.studentId,
+            target: factsStudent.studentId,
             set: {
               gradeLevel: sql`excluded.grade_level`,
               status: sql`excluded.status`,
@@ -180,25 +180,25 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
       }
       count += await flagMissing(
         tx,
-        mirrorStudent,
-        mirrorStudent.studentId,
+        factsStudent,
+        factsStudent.studentId,
         students.map((s) => s.studentId),
         runId,
       );
 
       if (staff.length) {
         await tx
-          .insert(mirrorStaff)
+          .insert(factsStaff)
           .values(staff.map((s) => ({ staffId: s.staffId, lastSeenAt: seenAt })))
           .onConflictDoUpdate({
-            target: mirrorStaff.staffId,
+            target: factsStaff.staffId,
             set: { inactive: false, flaggedByRunId: null, lastSeenAt: seenAt },
           });
       }
       count += await flagMissing(
         tx,
-        mirrorStaff,
-        mirrorStaff.staffId,
+        factsStaff,
+        factsStaff.staffId,
         staff.map((s) => s.staffId),
         runId,
       );
@@ -217,7 +217,7 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
 
     return { outcome: "applied", runId, counts, unlinkedPeople: queue };
   } catch (error) {
-    // The transaction has already rolled back, so the mirror is exactly as it
+    // The transaction has already rolled back, so the FACTS snapshot is exactly as it
     // was. Close the run outside it — evidence of a failed run mustn't roll
     // back with the run.
     const detail = error instanceof Error ? error.message : String(error);
@@ -239,25 +239,25 @@ export async function latestSyncRun(db: SyncDb): Promise<SyncRun | null> {
 // (ADR-0003). The admin groups these by run to spot a misfire and clear it
 // wholesale.
 //
-// Reads all three mirror tables, not only mirror_person. FACTS has students
-// with no /People row (mirror.ts), and clearRunFlags already clears all three —
+// Reads all three FACTS snapshot tables, not only facts_person. FACTS has students
+// with no /People row (facts.ts), and clearRunFlags already clears all three —
 // so listing only the person table hides exactly the rows whose clear button
 // the admin needs, and hides them permanently, since no /People row will ever
 // appear to reveal them.
 export async function flaggedPeople(db: SyncDb): Promise<FlaggedPerson[]> {
   const [people, students, staff] = await Promise.all([
     db
-      .select({ personId: mirrorPerson.personId, runId: mirrorPerson.flaggedByRunId })
-      .from(mirrorPerson)
-      .where(eq(mirrorPerson.inactive, true)),
+      .select({ personId: factsPerson.personId, runId: factsPerson.flaggedByRunId })
+      .from(factsPerson)
+      .where(eq(factsPerson.inactive, true)),
     db
-      .select({ personId: mirrorStudent.studentId, runId: mirrorStudent.flaggedByRunId })
-      .from(mirrorStudent)
-      .where(eq(mirrorStudent.inactive, true)),
+      .select({ personId: factsStudent.studentId, runId: factsStudent.flaggedByRunId })
+      .from(factsStudent)
+      .where(eq(factsStudent.inactive, true)),
     db
-      .select({ personId: mirrorStaff.staffId, runId: mirrorStaff.flaggedByRunId })
-      .from(mirrorStaff)
-      .where(eq(mirrorStaff.inactive, true)),
+      .select({ personId: factsStaff.staffId, runId: factsStaff.flaggedByRunId })
+      .from(factsStaff)
+      .where(eq(factsStaff.inactive, true)),
   ]);
 
   // One entry per person per run: a departing student is flagged in two tables
@@ -275,14 +275,14 @@ export async function flaggedPeople(db: SyncDb): Promise<FlaggedPerson[]> {
   const [names, runs] = await Promise.all([
     db
       .select({
-        personId: mirrorPerson.personId,
-        firstName: mirrorPerson.firstName,
-        lastName: mirrorPerson.lastName,
+        personId: factsPerson.personId,
+        firstName: factsPerson.firstName,
+        lastName: factsPerson.lastName,
       })
-      .from(mirrorPerson)
+      .from(factsPerson)
       .where(
         inArray(
-          mirrorPerson.personId,
+          factsPerson.personId,
           entries.map((entry) => entry.personId),
         ),
       ),
@@ -321,14 +321,14 @@ export async function flaggedPeople(db: SyncDb): Promise<FlaggedPerson[]> {
 }
 
 // Undo a misfired run wholesale (ADR-0003): every row that run flagged, across
-// all three mirror tables, goes active again. The admin's escape hatch for a
+// all three FACTS snapshot tables, goes active again. The admin's escape hatch for a
 // sync that obviously pulled too little — the thing that makes shipping without
 // the <50% guard safe rather than a gamble. Idempotent, and a no-op for a run
 // whose flags a healthy re-sync has already cleared.
 export async function clearRunFlags(db: SyncDb, runId: number): Promise<void> {
   const unflag = { inactive: false, flaggedByRunId: null };
   await db.transaction(async (tx) => {
-    for (const table of [mirrorPerson, mirrorStudent, mirrorStaff]) {
+    for (const table of [factsPerson, factsStudent, factsStaff]) {
       await tx.update(table).set(unflag).where(eq(table.flaggedByRunId, runId));
     }
   });
@@ -339,7 +339,7 @@ export async function clearRunFlags(db: SyncDb, runId: number): Promise<void> {
 // aren't re-counted, so the number means "left FACTS since last sync").
 async function flagMissing(
   tx: SyncDb,
-  table: typeof mirrorPerson | typeof mirrorStudent | typeof mirrorStaff,
+  table: typeof factsPerson | typeof factsStudent | typeof factsStaff,
   idColumn: Parameters<typeof notInArray>[0],
   presentIds: number[],
   runId: number,
@@ -356,7 +356,7 @@ async function flagMissing(
   return flagged.length;
 }
 
-// FACTS people nobody can log in as: mirrored, active, and no link row points
+// FACTS people nobody can log in as: in the FACTS snapshot, active, and no link row points
 // at them. Portal accounts with no FACTS person (the ~7 staff FACTS will never
 // track) are the pool we suggest from.
 //
@@ -372,13 +372,13 @@ export async function unlinkedPeople(db: SyncDb): Promise<UnlinkedPerson[]> {
   const [unlinked, candidates] = await Promise.all([
     db
       .select({
-        personId: mirrorPerson.personId,
-        firstName: mirrorPerson.firstName,
-        lastName: mirrorPerson.lastName,
+        personId: factsPerson.personId,
+        firstName: factsPerson.firstName,
+        lastName: factsPerson.lastName,
       })
-      .from(mirrorPerson)
+      .from(factsPerson)
       .where(
-        and(eq(mirrorPerson.inactive, false), notInArray(mirrorPerson.personId, linkedIds)),
+        and(eq(factsPerson.inactive, false), notInArray(factsPerson.personId, linkedIds)),
       ),
     db
       .select({ linkId: identityLink.id, googleEmail: identityLink.googleEmail })

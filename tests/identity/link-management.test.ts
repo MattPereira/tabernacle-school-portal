@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { identityLink, mirrorPerson } from "@/lib/db/schema";
+import { identityLink, factsPerson } from "@/lib/db/schema";
 import {
   type Access,
   createLink,
@@ -35,7 +35,7 @@ describe("admin link management", () => {
 
   beforeEach(async () => {
     await db.delete(identityLink);
-    await db.delete(mirrorPerson);
+    await db.delete(factsPerson);
   });
 
   describe("createLink", () => {
@@ -133,8 +133,8 @@ describe("admin link management", () => {
       expect(await db.select().from(identityLink)).toEqual([]);
     });
 
-    it("links to a FACTS person the mirror has never seen", async () => {
-      // The mirror is a cache and may be stale; refusing to link against it
+    it("links to a FACTS person the FACTS snapshot has never seen", async () => {
+      // The FACTS snapshot may be stale; refusing to link against it
       // would let a lagging sync block the office from granting access.
       const result = await createLink(
         { googleEmail: "newhire@tbs.org", factsPersonId: 999999, role: "staff", admin: false },
@@ -274,8 +274,8 @@ describe("admin link management", () => {
       expect(await listLinks({ db })).toEqual([]);
     });
 
-    it("names each account from the mirror, in login order", async () => {
-      await db.insert(mirrorPerson).values({
+    it("names each account from the FACTS snapshot, in login order", async () => {
+      await db.insert(factsPerson).values({
         personId: 1206161,
         firstName: "Benjamin",
         lastName: "Olson",
@@ -293,7 +293,7 @@ describe("admin link management", () => {
       ]);
     });
 
-    it("shows a link whose FACTS person the mirror hasn't got", async () => {
+    it("shows a link whose FACTS person the snapshot hasn't got", async () => {
       await db.insert(identityLink).values({
         googleEmail: "newhire@tbs.org",
         factsPersonId: 999999,

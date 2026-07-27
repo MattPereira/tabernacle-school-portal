@@ -1,14 +1,14 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { mirrorPerson, mirrorStaff, mirrorStudent } from "@/lib/db/schema";
+import { factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
 import { fakeFacts, person, staffMember, student } from "../support/facts";
 import { resetSync } from "./support";
 
-describe("sync mirrors FACTS", () => {
+describe("sync populates the FACTS snapshot", () => {
   let harness: TestDb;
   let db: TestDb["db"];
 
@@ -23,7 +23,7 @@ describe("sync mirrors FACTS", () => {
 
   beforeEach(() => resetSync(db));
 
-  it("pulls students, staff and their people into the mirror", async () => {
+  it("pulls students, staff and their people into the FACTS snapshot", async () => {
     const facts = fakeFacts({
       students: [student(1206161, "7")],
       staff: [staffMember(1203006)],
@@ -38,7 +38,7 @@ describe("sync mirrors FACTS", () => {
     expect(result.outcome).toBe("applied");
     expect(result).toMatchObject({ counts: { people: 2, students: 1, staff: 1 } });
 
-    expect(await db.select().from(mirrorPerson)).toEqual([
+    expect(await db.select().from(factsPerson)).toEqual([
       expect.objectContaining({
         personId: 1206161,
         firstName: "Benjamin",
@@ -48,17 +48,17 @@ describe("sync mirrors FACTS", () => {
       }),
       expect.objectContaining({ personId: 1203006, firstName: "Jane", lastName: "Doe" }),
     ]);
-    expect(await db.select().from(mirrorStudent)).toEqual([
+    expect(await db.select().from(factsStudent)).toEqual([
       expect.objectContaining({ studentId: 1206161, gradeLevel: "7", status: "Enrolled" }),
     ]);
-    expect(await db.select().from(mirrorStaff)).toEqual([
+    expect(await db.select().from(factsStaff)).toEqual([
       expect.objectContaining({ staffId: 1203006, inactive: false }),
     ]);
   });
 
   it("reads people once for a person who is both student and staff", async () => {
     // The two populations share the personId space, so the join must dedupe
-    // rather than mirror the same person twice.
+    // rather than include the same person twice in the FACTS snapshot.
     const facts = fakeFacts({
       students: [student(500)],
       staff: [staffMember(500)],
@@ -68,10 +68,10 @@ describe("sync mirrors FACTS", () => {
     const result = await sync({ db, facts });
 
     expect(result).toMatchObject({ counts: { people: 1, students: 1, staff: 1 } });
-    expect(await db.select().from(mirrorPerson)).toHaveLength(1);
+    expect(await db.select().from(factsPerson)).toHaveLength(1);
   });
 
-  it("mirrors a student whose /People row is missing", async () => {
+  it("stores a student in the FACTS snapshot whose /People row is missing", async () => {
     // FACTS has students with no matching person record. That's their data
     // wart to fix; it must not cost us the rest of the sync.
     const facts = fakeFacts({ students: [student(777)], people: [] });
@@ -79,11 +79,11 @@ describe("sync mirrors FACTS", () => {
     const result = await sync({ db, facts });
 
     expect(result.outcome).toBe("applied");
-    expect(await db.select().from(mirrorStudent)).toHaveLength(1);
-    expect(await db.select().from(mirrorPerson)).toHaveLength(0);
+    expect(await db.select().from(factsStudent)).toHaveLength(1);
+    expect(await db.select().from(factsPerson)).toHaveLength(0);
   });
 
-  it("overwrites mirrored fields on the next run — FACTS always wins", async () => {
+  it("overwrites snapshot fields on the next run — FACTS always wins", async () => {
     await sync({ db, facts: fakeFacts({ students: [student(42, "5")], people: [person(42, "Al", "Brown", "old@x.com")] }) });
 
     await sync({
@@ -94,13 +94,13 @@ describe("sync mirrors FACTS", () => {
       }),
     });
 
-    const [mirrored] = await db.select().from(mirrorPerson).where(eq(mirrorPerson.personId, 42));
-    expect(mirrored).toMatchObject({
+    const [snapshotPerson] = await db.select().from(factsPerson).where(eq(factsPerson.personId, 42));
+    expect(snapshotPerson).toMatchObject({
       firstName: "Alastair",
       lastName: "Brown-Smith",
       contactEmail: "new@x.com",
     });
-    const [enrolled] = await db.select().from(mirrorStudent);
-    expect(enrolled).toMatchObject({ gradeLevel: "6" });
+    const [snapshotStudent] = await db.select().from(factsStudent);
+    expect(snapshotStudent).toMatchObject({ gradeLevel: "6" });
   });
 });

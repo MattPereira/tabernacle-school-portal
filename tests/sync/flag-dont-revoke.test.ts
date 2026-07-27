@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { identityLink, mirrorPerson, mirrorStaff, mirrorStudent } from "@/lib/db/schema";
+import { identityLink, factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
 import { resolveAccess } from "@/lib/identity";
 import { sync } from "@/lib/sync";
 
@@ -43,10 +43,10 @@ describe("sync flags, never revokes", () => {
     });
 
     expect(result).toMatchObject({ counts: { flagged: 2 } }); // the person and the student row
-    expect(await db.select().from(mirrorStudent)).toHaveLength(2);
-    const [departed] = await db.select().from(mirrorStudent).where(eq(mirrorStudent.studentId, 2));
+    expect(await db.select().from(factsStudent)).toHaveLength(2);
+    const [departed] = await db.select().from(factsStudent).where(eq(factsStudent.studentId, 2));
     expect(departed.inactive).toBe(true);
-    const [stillHere] = await db.select().from(mirrorStudent).where(eq(mirrorStudent.studentId, 1));
+    const [stillHere] = await db.select().from(factsStudent).where(eq(factsStudent.studentId, 1));
     expect(stillHere.inactive).toBe(false);
   });
 
@@ -100,7 +100,7 @@ describe("sync flags, never revokes", () => {
     await sync({ db, facts: fakeFacts({ students: [student(1)], staff: [staffMember(3)], people: [person(1, "Ann", "Alpha"), person(3, "Cy", "Gamma")] }) });
     await sync({ db, facts: twoStudents });
 
-    const [returned] = await db.select().from(mirrorStudent).where(eq(mirrorStudent.studentId, 2));
+    const [returned] = await db.select().from(factsStudent).where(eq(factsStudent.studentId, 2));
     expect(returned.inactive).toBe(false);
   });
 
@@ -142,11 +142,11 @@ describe("sync flags, never revokes", () => {
       }),
     });
 
-    const [departed] = await db.select().from(mirrorStaff).where(eq(mirrorStaff.staffId, 3));
+    const [departed] = await db.select().from(factsStaff).where(eq(factsStaff.staffId, 3));
     expect(departed.inactive).toBe(true);
-    const [gammaPerson] = await db.select().from(mirrorPerson).where(eq(mirrorPerson.personId, 3));
+    const [gammaPerson] = await db.select().from(factsPerson).where(eq(factsPerson.personId, 3));
     expect(gammaPerson.inactive).toBe(true);
-    const [stayed] = await db.select().from(mirrorStaff).where(eq(mirrorStaff.staffId, 4));
+    const [stayed] = await db.select().from(factsStaff).where(eq(factsStaff.staffId, 4));
     expect(stayed.inactive).toBe(false);
   });
 });

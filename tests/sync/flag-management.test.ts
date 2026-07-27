@@ -99,11 +99,11 @@ describe("flag management", () => {
     expect(await flaggedPeople(db)).toEqual([]);
   });
 
-  // FACTS has students with no /People row (mirror.ts). Their flag lands only in
-  // mirror_student, and no /People row will ever turn up to reveal it — so a
+  // FACTS has students with no /People row (facts.ts). Their flag lands only in
+  // facts_student, and no /People row will ever turn up to reveal it — so a
   // person-table-only read hides them from the list forever, taking the clear
   // button with them.
-  it("lists a person flagged only outside mirror_person, unnamed but clearable", async () => {
+  it("lists a person flagged only outside facts_person, unnamed but clearable", async () => {
     const nameless = fakeFacts({
       students: [student(1), student(2)],
       people: [person(1, "Benjamin", "Olson")], // no /People row for student 2
@@ -130,9 +130,9 @@ describe("flag management", () => {
     expect(await flaggedPeople(db)).toEqual([]);
   });
 
-  // A departing student is flagged in mirror_person and mirror_student by the
+  // A departing student is flagged in facts_person and facts_student by the
   // same run. That is one human to the admin, not two rows.
-  it("lists a person once per run however many mirror tables flagged them", async () => {
+  it("lists a person once per run however many FACTS snapshot tables flagged them", async () => {
     await sync({ db, facts: healthy });
     const bad = await sync({ db, facts: misfire });
 

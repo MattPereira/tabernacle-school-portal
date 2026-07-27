@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
-import { identityLink, mirrorPerson, roleEnum, type Role } from "@/lib/db/schema";
+import { identityLink, factsPerson, roleEnum, type Role } from "@/lib/db/schema";
 import type * as schema from "@/lib/db/schema";
 import type { IdentityLink } from "@/lib/db/schema";
 
@@ -141,8 +141,8 @@ export async function createLink(input: LinkInput, deps: AdminDeps): Promise<Lin
   // unique index stays the real guarantee — this is the readable path to it.
   if (existing) return { ok: false, reason: "duplicate-email" };
 
-  // Note what isn't checked: that the FACTS person exists in the mirror. The
-  // mirror is a cache and may be stale or mid-sync, and a lagging sync must
+  // Note what isn't checked: that the FACTS person exists in the FACTS snapshot. The
+  // FACTS snapshot may be stale or mid-sync, and a lagging sync must
   // never stop the office granting somebody access.
   const [link] = await deps.db
     .insert(identityLink)
@@ -178,16 +178,16 @@ export async function updateLink(
   return link ? { ok: true, link } : { ok: false, reason: "not-found" };
 }
 
-// A link row plus the mirrored name, for the screen to show. The name is
-// display only and comes from the mirror, which is never authoritative — a link
-// whose person the mirror hasn't got still lists, it just shows no name.
+// A link row plus the FACTS snapshot name, for the screen to show. The name is
+// display only and comes from the FACTS snapshot, which is never authoritative — a link
+// whose person the snapshot hasn't got still lists, it just shows no name.
 export type LinkListing = IdentityLink & { factsName: string | null };
 
 export async function listLinks(deps: IdentityDeps): Promise<LinkListing[]> {
   const rows = await deps.db
-    .select({ link: identityLink, person: mirrorPerson })
+    .select({ link: identityLink, person: factsPerson })
     .from(identityLink)
-    .leftJoin(mirrorPerson, eq(identityLink.factsPersonId, mirrorPerson.personId))
+    .leftJoin(factsPerson, eq(identityLink.factsPersonId, factsPerson.personId))
     .orderBy(asc(identityLink.googleEmail));
 
   return rows.map(({ link, person }) => ({

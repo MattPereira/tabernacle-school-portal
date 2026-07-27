@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { mirrorPerson, mirrorStaff, mirrorStudent, syncRun } from "@/lib/db/schema";
+import { factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
@@ -22,7 +22,7 @@ describe("sync applies all-or-nothing", () => {
 
   beforeEach(() => resetSync(db));
 
-  it("leaves the mirror untouched when a write fails mid-sync", async () => {
+  it("leaves the FACTS snapshot untouched when a write fails mid-sync", async () => {
     await sync({
       db,
       facts: fakeFacts({
@@ -33,9 +33,9 @@ describe("sync applies all-or-nothing", () => {
     });
 
     const before = {
-      people: await db.select().from(mirrorPerson),
-      students: await db.select().from(mirrorStudent),
-      staff: await db.select().from(mirrorStaff),
+      people: await db.select().from(factsPerson),
+      students: await db.select().from(factsStudent),
+      staff: await db.select().from(factsStaff),
     };
 
     // People write cleanly, then the student batch trips Postgres: a duplicate
@@ -51,9 +51,9 @@ describe("sync applies all-or-nothing", () => {
     });
 
     expect(result.outcome).toBe("failed");
-    expect(await db.select().from(mirrorPerson)).toEqual(before.people);
-    expect(await db.select().from(mirrorStudent)).toEqual(before.students);
-    expect(await db.select().from(mirrorStaff)).toEqual(before.staff);
+    expect(await db.select().from(factsPerson)).toEqual(before.people);
+    expect(await db.select().from(factsStudent)).toEqual(before.students);
+    expect(await db.select().from(factsStaff)).toEqual(before.staff);
   });
 
   it("records a sync_run for a failed run, outside the rolled-back transaction", async () => {
@@ -68,7 +68,7 @@ describe("sync applies all-or-nothing", () => {
   it("writes nothing when FACTS fails before any data arrives", async () => {
     await sync({ db, facts: fakeFacts({ failOn: "people", students: [student(1)] }) });
 
-    expect(await db.select().from(mirrorStudent)).toHaveLength(0);
-    expect(await db.select().from(mirrorPerson)).toHaveLength(0);
+    expect(await db.select().from(factsStudent)).toHaveLength(0);
+    expect(await db.select().from(factsPerson)).toHaveLength(0);
   });
 });

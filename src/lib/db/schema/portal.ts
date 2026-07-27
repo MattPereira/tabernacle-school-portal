@@ -31,7 +31,7 @@ export const identityLink = pgTable(
 
 export type IdentityLink = typeof identityLink.$inferSelect;
 
-// What a sync run did. `applied` touched the mirror; `failed` rolled back and
+// What a sync run did. `applied` touched the FACTS snapshot; `failed` rolled back and
 // left it exactly as it was. There is no "refused" outcome: sync applies
 // whatever FACTS says, because flag-don't-revoke makes a bad pull cost flags,
 // not data (see the note on sync()). These are the two *terminal* outcomes; a
@@ -44,7 +44,7 @@ export type SyncOutcome = (typeof syncOutcomeEnum.enumValues)[number];
 // One row per run, created when the run *starts* and finalized when it *ends*
 // (ADR-0003) — so its id exists to stamp onto the rows this run flags, and a
 // crash leaves a visible half-run rather than nothing. It's the admin screen's
-// only answer to "did the last sync work?". Written *outside* the mirror
+// only answer to "did the last sync work?". Written *outside* the FACTS snapshot
 // transaction, so an abort or failure still leaves a record behind instead of
 // rolling its own evidence back. `outcome`/`finishedAt` are null until the run
 // finishes.

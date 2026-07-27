@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { mirrorStudent, syncRun } from "@/lib/db/schema";
+import { factsStudent, syncRun } from "@/lib/db/schema";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
@@ -28,7 +28,7 @@ describe("sync applies large changes without refusing", () => {
 
   const seed = (count: number) => sync({ db, facts: fakeFacts(population(count)) });
 
-  it("applies a run that shrinks the mirror to almost nothing", async () => {
+  it("applies a run that shrinks the FACTS snapshot to almost nothing", async () => {
     await seed(10);
 
     const result = await sync({ db, facts: fakeFacts(population(1)) });
@@ -42,9 +42,9 @@ describe("sync applies large changes without refusing", () => {
     await sync({ db, facts: fakeFacts(population(1)) });
 
     // Every row is still here. That's the whole reason no guard is needed.
-    const mirrored = await db.select().from(mirrorStudent);
-    expect(mirrored).toHaveLength(10);
-    expect(mirrored.filter((s) => s.inactive)).toHaveLength(9);
+    const snapshotStudents = await db.select().from(factsStudent);
+    expect(snapshotStudents).toHaveLength(10);
+    expect(snapshotStudents.filter((s) => s.inactive)).toHaveLength(9);
   });
 
   it("un-flags everyone when the next run comes back healthy", async () => {
@@ -53,27 +53,27 @@ describe("sync applies large changes without refusing", () => {
 
     await sync({ db, facts: fakeFacts(population(10)) });
 
-    const mirrored = await db.select().from(mirrorStudent);
-    expect(mirrored).toHaveLength(10);
-    expect(mirrored.filter((s) => s.inactive)).toHaveLength(0);
+    const snapshotStudents = await db.select().from(factsStudent);
+    expect(snapshotStudents).toHaveLength(10);
+    expect(snapshotStudents.filter((s) => s.inactive)).toHaveLength(0);
   });
 
-  it("applies an empty FACTS response by flagging the whole mirror", async () => {
+  it("applies an empty FACTS response by flagging the whole FACTS snapshot", async () => {
     await seed(10);
 
     const result = await sync({ db, facts: fakeFacts({}) });
 
     expect(result.outcome).toBe("applied");
-    const mirrored = await db.select().from(mirrorStudent);
-    expect(mirrored).toHaveLength(10);
-    expect(mirrored.every((s) => s.inactive)).toBe(true);
+    const snapshotStudents = await db.select().from(factsStudent);
+    expect(snapshotStudents).toHaveLength(10);
+    expect(snapshotStudents.every((s) => s.inactive)).toBe(true);
   });
 
-  it("seeds an empty mirror", async () => {
+  it("seeds an empty FACTS snapshot", async () => {
     const result = await seed(10);
 
     expect(result.outcome).toBe("applied");
-    expect(await db.select().from(mirrorStudent)).toHaveLength(10);
+    expect(await db.select().from(factsStudent)).toHaveLength(10);
   });
 
   it("handles growth as ordinary news", async () => {

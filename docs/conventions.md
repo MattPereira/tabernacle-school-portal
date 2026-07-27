@@ -63,7 +63,7 @@ docs/                     CONTEXT.md glossary, adr/ decision records, this file
 
 ## Testing
 
-- **Vitest**, all tests under `tests/` (settled while building #18 — tests aren't runtime-imported, so the `src/` barrier keeps them out). Mirror the module path: `tests/identity/` covers `src/lib/identity`.
+- **Vitest**, all tests under `tests/` (settled while building #18 — tests aren't runtime-imported, so the `src/` barrier keeps them out). Follow the module path: `tests/identity/` covers `src/lib/identity`.
 - **Test the deep modules through their interfaces** — `sync(deps)`, `resolveAccess(email, deps)`. `app/` and components get little-to-no test; a presentation-only change ships without one (see #24).
 - **Wiring gets no test, so behavior doesn't live in wiring.** If a requirement needs asserting and it sits in `lib/auth` or `app/`, that's the signal to move the decision into a rule module and inject what it needs (this is why `recordLoginAttempt` takes a `log`). Don't widen the no-test rule to cover logic — move the logic.
 - **PGlite** for a real in-process Postgres — exercises real SQL/transactions, no Docker. `tests/support/db.ts` applies the real `drizzle/` migrations, so a migration that would fail in production fails in tests first.

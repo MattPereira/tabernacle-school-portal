@@ -35,7 +35,7 @@ describe("sync computes the unlinked-people list", () => {
     ],
   });
 
-  it("lists every mirrored person with no link row", async () => {
+  it("lists every FACTS snapshot person with no link row", async () => {
     await db.insert(identityLink).values({
       googleEmail: "bob@tbs.org",
       factsPersonId: 2,
@@ -96,7 +96,7 @@ describe("sync computes the unlinked-people list", () => {
   });
 
   it("excludes people FACTS has dropped", async () => {
-    // A flagged person is still mirrored, but nobody needs to be linked to
+    // A flagged person is still in the FACTS snapshot, but nobody needs to be linked to
     // them — the list is the admin's work queue, not a census.
     await sync({
       db,
