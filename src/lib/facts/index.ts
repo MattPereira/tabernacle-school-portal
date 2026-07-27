@@ -1,5 +1,5 @@
 // The runtime FACTS API client. Read-only by construction: this module exposes
-// no way to write to FACTS, because the portal never does (ADR-0001 §3).
+// no way to write to FACTS, because the portal never does (ADR-0005).
 //
 // The Swagger contract lives in reference/facts/api-definitions.json — read it
 // there, don't re-derive it from this file (docs/conventions.md §5).
@@ -17,8 +17,7 @@ export type FactsPerson = {
   personId: number;
   firstName: string | null;
   lastName: string | null;
-  // Contact email. Present for a minority and often the *parents'* address —
-  // never a login identity (ADR-0001, Alternatives).
+  // Contact email. FACTS owns it; staff access derives from an exact match.
   contactEmail: string | null;
 };
 

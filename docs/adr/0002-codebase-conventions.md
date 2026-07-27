@@ -1,7 +1,11 @@
 # ADR-0002: Codebase conventions & architecture for the walking skeleton
 
-**Status:** Accepted (2026-07-23), amended (2026-07-23 — see Amendment)
+**Status:** Accepted (2026-07-23), amended (2026-07-23 — see Amendment); identity-specific portions superseded by [ADR-0005](0005-facts-derived-identity.md) (2026-07-27)
 **Wayfinder:** [map #6](https://github.com/MattPereira/tabernacle-school-portal/issues/6), decided in [#14](https://github.com/MattPereira/tabernacle-school-portal/issues/14). Builds on the stack choice ([#3](https://github.com/MattPereira/tabernacle-school-portal/issues/3): Next.js + TS + Neon/Drizzle + better-auth + Vercel).
+
+> **ADR-0005 amendment:** `facts.ts` replaces `mirror.ts`; the portal owns no
+> `identity_link` table, role, or identity seed. The active layout and testing
+> guidance are in [docs/conventions.md](../conventions.md).
 
 ## Context
 

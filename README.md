@@ -1,3 +1,3 @@
 # Tabernacle School Portal
 
-A portal for school students, staff, and parents
+Staff-only walking skeleton: sign-in, home page, and FACTS sync.
