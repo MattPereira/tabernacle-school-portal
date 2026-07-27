@@ -6,14 +6,14 @@ const MAX_PER_WINDOW = 10; // API allows 10 requests...
 const WINDOW_MS = 60_000; // ...per rolling 60s window
 const PAD_MS = 2_000; // safety pad so we clear the window edge
 
-const { SUBSCRIPTION_KEY, FACTS_API_KEY } = process.env;
-if (!SUBSCRIPTION_KEY || !FACTS_API_KEY) {
-  console.error("Missing SUBSCRIPTION_KEY or FACTS_API_KEY. Run with --env-file=.env");
+const { FACTS_SUBSCRIPTION_KEY, FACTS_API_KEY } = process.env;
+if (!FACTS_SUBSCRIPTION_KEY || !FACTS_API_KEY) {
+  console.error("Missing FACTS_SUBSCRIPTION_KEY or FACTS_API_KEY. Run with --env-file=.env");
   process.exit(1);
 }
 
 const headers = {
-  "Ocp-Apim-Subscription-Key": SUBSCRIPTION_KEY,
+  "Ocp-Apim-Subscription-Key": FACTS_SUBSCRIPTION_KEY,
   "Facts-Api-Key": FACTS_API_KEY,
 };
 
