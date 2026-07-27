@@ -5,7 +5,7 @@
 // there, don't re-derive it from this file (docs/conventions.md §5).
 
 const BASE_URL = "https://api.factsmgt.com";
-const MAX_PER_WINDOW = 10; // the API allows 10 requests...
+const MAX_PER_WINDOW = 100; // the API allows 100 requests...
 const WINDOW_MS = 60_000; // ...per rolling 60s window
 const PAD_MS = 2_000; // safety pad so we clear the window edge
 const PAGE_SIZE = 1000;

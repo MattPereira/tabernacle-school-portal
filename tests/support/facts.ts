@@ -9,7 +9,7 @@ export type FactsFixture = {
 };
 
 // Stands in for the real FACTS API at the same seam sync is written against, so
-// no test needs a network, a key, or the 10 req/min budget.
+// no test needs a network, a key, or the 100 req/min budget.
 export function fakeFacts(fixture: FactsFixture): FactsClient {
   const boom = (which: FactsFixture["failOn"]) => {
     if (fixture.failOn === which) throw new Error(`FACTS ${which} read failed`);

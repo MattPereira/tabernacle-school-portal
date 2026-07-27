@@ -12,7 +12,7 @@ Primary sources, in trust order:
 
 - **Sync reads:** `GET /Students` (ids, grade level, enrolled status) + `GET /People` (names, emails, modifiedDate) + `GET /People/Staff` (staff list, active flag). Two-step join required because neither `/Students` nor `/People/Staff` returns email.
 - **Auth:** two static keys per request (Azure APIM subscription key + FACTS key). No OAuth, no token refresh.
-- **Rate limit:** ~10 requests/minute (empirical, enforced with 429 + `Retry-After`). This dominates sync design.
+- **Rate limit:** ~100 requests/minute (empirical, enforced with 429 + `Retry-After`). Not a binding constraint on sync design.
 - **Change detection:** no webhooks anywhere in the spec. `PersonVM.modifiedDate` exists on `/People` output; server-side `modifiedDate` Sieve filtering is plausible but unverified.
 - **Student email write: YES** — `PUT /People/{personId}` (body `PersonVM`, has `email`/`email2`) or `PATCH /People/{personId}` (JSON Patch). Email lives on the person record, not the student record.
 
@@ -66,16 +66,16 @@ Static keys; no OAuth flow, no expiry handling needed.
 
 ## Rate limits
 
-Not stated in the spec. Empirical, from `facts-client.mjs` (working code): **10 requests per rolling 60s window**; server returns `429` with a `Retry-After` header when exceeded. The client serializes all requests through a sliding-window limiter.
+Not stated in the spec. Empirical, from `facts-client.mjs` (working code): **100 requests per rolling 60s window**; server returns `429` with a `Retry-After` header when exceeded. The client serializes all requests through a sliding-window limiter.
 
-Consequence for sync design: a full students+staff sync is ~10–15 requests (1–2 pages of `/Students` + ~4 chunked `/People` calls + `/People/Staff` + staff `/People` chunks) ≈ **1–2 minutes minimum**. Fine for nightly sync; too slow for anything interactive.
+Consequence for sync design: a full students+staff sync is ~10–15 requests (1–2 pages of `/Students` + ~4 chunked `/People` calls + `/People/Staff` + staff `/People` chunks), comfortably inside a single window — **seconds, not minutes**, bounded by latency rather than budget.
 
 ## Change detection
 
 - **Webhooks: none.** Zero matches for "webhook" in the 4MB spec; no eventing/subscription endpoints among all 369 paths.
 - **No modified-since query parameter** on any endpoint — only generic Sieve `Filters`.
 - `PersonVM.modifiedDate` exists on `/People` output, so incremental person sync is possible at worst client-side (fetch, compare). A server-side Sieve filter like `Filters=modifiedDate>2026-07-01` *may* work (Sieve supports `>`/`>=` on filterable fields) but is **unverified** — needs one live test. Note: `StudentModelV1_3` has **no** `modifiedDate`, so enrollment-status changes have no timestamp; detect those by diffing full `/Students` pulls (cheap: 1–2 requests).
-- Practical design: scheduled full pull + local diff. Volume is small (hundreds of records), so this is not a problem at 10 req/min.
+- Practical design: scheduled full pull + local diff. Volume is small (hundreds of records), so this is not a problem at 100 req/min.
 
 ## Student email write support — YES
 
@@ -86,9 +86,9 @@ Email is a **person** attribute (`CreatePersonBaseDto.email` / `email2`), not a 
 
 There is no email-bearing write endpoint under `/Students` — the only student writes are `PUT`/`PATCH /Students/{personStudentId}` and `/Students/{personStudentId}/School` (enrollment data, no email).
 
-**Bulk migration plan:** for N students, N PATCH calls at 10/min ⇒ ~6s per student. E.g. 400 students ≈ 40 minutes, one-time. Recommend PATCH over PUT to avoid needing to round-trip the full `PersonVM`. **Target `personId == studentId`** — using `personStudentId` would write to a different, unrelated person (see the Students table above).
+**Bulk migration plan:** for N students, N PATCH calls at 100/min ⇒ ~0.6s per student. E.g. 400 students ≈ 4 minutes, one-time. Recommend PATCH over PUT to avoid needing to round-trip the full `PersonVM`. **Target `personId == studentId`** — using `personStudentId` would write to a different, unrelated person (see the Students table above).
 
 ## Caveats
 
-- Rate-limit figure and the `Facts-Api-Key` header are empirical (working client), not from official docs; official docs are behind FACTS' partner portal and were not reachable publicly.
+- Rate-limit figure and the `Facts-Api-Key` header are empirical (working client), not from official docs; official docs are behind FACTS' partner portal and were not reachable publicly. The 100/min figure has not been confirmed against a live 429 boundary — if syncs start throwing 429s, that's the first thing to re-measure.
 - Server-side `modifiedDate` filtering and PATCH email writes are spec-supported but untested against the live API; each needs a single smoke-test call before being relied on.

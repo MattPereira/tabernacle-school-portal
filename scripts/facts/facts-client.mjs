@@ -1,8 +1,8 @@
-// Shared FACTS API client with rate limiting (10 requests/minute).
-// Serializes all requests and spaces them ~6.5s apart; honors 429 Retry-After.
+// Shared FACTS API client with rate limiting (100 requests/minute).
+// Serializes all requests through a sliding window; honors 429 Retry-After.
 
 const BASE_URL = "https://api.factsmgt.com";
-const MAX_PER_WINDOW = 10; // API allows 10 requests...
+const MAX_PER_WINDOW = 100; // API allows 100 requests...
 const WINDOW_MS = 60_000; // ...per rolling 60s window
 const PAD_MS = 2_000; // safety pad so we clear the window edge
 

@@ -65,7 +65,7 @@ There is **no separate `server/` folder.** It was considered and rejected: a ded
 
 ## Amendment (2026-07-23, [#17](https://github.com/MattPereira/tabernacle-school-portal/issues/17))
 
-The **fetchers are kept**, not deleted, in `scripts/facts/` and `scripts/google/` (layout in [conventions](../conventions.md)). They're the only executable record of how the external APIs are actually called — FACTS' 10 req/min ceiling and Sieve filter syntax, Workspace JWT impersonation — and are ops-time, which is what `scripts/` is for. The runtime FACTS client under `src/lib/` is still to be written, *from* these. Service-account key now lives in gitignored `secrets/`.
+The **fetchers are kept**, not deleted, in `scripts/facts/` and `scripts/google/` (layout in [conventions](../conventions.md)). They're the only executable record of how the external APIs are actually called — FACTS' 100 req/min ceiling and Sieve filter syntax, Workspace JWT impersonation — and are ops-time, which is what `scripts/` is for. The runtime FACTS client under `src/lib/` is still to be written, *from* these. Service-account key now lives in gitignored `secrets/`.
 
 ⚠️ Being gitignored, these were unrecoverable when deleted; `fetch-parents.mjs` was lost for good. Commit prototype code before a cleanup ticket touches it.
 
