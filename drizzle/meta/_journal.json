@@ -43,6 +43,13 @@
       "when": 1785193118000,
       "tag": "0005_derive_facts_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785190135001,
+      "tag": "0006_cooing_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

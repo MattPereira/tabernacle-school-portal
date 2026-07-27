@@ -13,13 +13,22 @@ export type SyncCounts = { people: number; students: number; staff: number; flag
 
 export type SyncResult =
   | { outcome: "applied"; runId: number; counts: SyncCounts }
-  | { outcome: "failed"; runId: number; detail: string };
+  | { outcome: "failed"; runId: number; detail: string }
+  | { outcome: "in_flight" };
 
 // The FACTS snapshot applies transactionally. Missing records are retained as
 // inactive, but that flag intentionally never revokes request-time access.
 export async function sync(deps: SyncDeps): Promise<SyncResult> {
   const { db, facts, now = () => new Date() } = deps;
-  const [opened] = await db.insert(syncRun).values({ startedAt: now() }).returning({ id: syncRun.id });
+  let opened: { id: number };
+  try {
+    [opened] = await db.insert(syncRun).values({ startedAt: now() }).returning({ id: syncRun.id });
+  } catch (error) {
+    // The partial unique index is the concurrency gate. The browser is also
+    // disabled for the same condition, but it is not an authorization boundary.
+    if (isInFlightConflict(error)) return { outcome: "in_flight" };
+    throw error;
+  }
   const runId = opened.id;
   const empty: SyncCounts = { people: 0, students: 0, staff: 0, flagged: 0 };
   const close = (outcome: "applied" | "failed", counts: SyncCounts, detail: string | null) =>
@@ -59,6 +68,13 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
     await close("failed", empty, detail);
     return { outcome: "failed", runId, detail };
   }
+}
+
+function isInFlightConflict(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  if ("code" in error && error.code === "23505" && "constraint" in error
+    && error.constraint === "sync_run_one_in_flight") return true;
+  return "cause" in error && isInFlightConflict(error.cause);
 }
 
 export async function latestSyncRun(db: SyncDb) {

@@ -1,5 +1,6 @@
 // Portal-owned operational state. Identity and roles are FACTS-derived.
-import { integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // What a sync run did. `applied` touched the FACTS snapshot; `failed` rolled back and
 // left it exactly as it was. There is no "refused" outcome: sync applies
@@ -29,6 +30,10 @@ export const syncRun = pgTable("sync_run", {
   flaggedCount: integer("flagged_count").notNull().default(0),
   // Abort reason or error message; null on a clean run.
   detail: text(),
-});
+}, (table) => [
+  // A partial unique index makes the home-page disabled state authoritative:
+  // concurrent requests cannot both open a run.
+  uniqueIndex("sync_run_one_in_flight").on(sql`(1)`).where(sql`${table.outcome} is null`),
+]);
 
 export type SyncRun = typeof syncRun.$inferSelect;

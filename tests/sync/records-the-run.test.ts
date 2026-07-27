@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { syncRun } from "@/lib/db/schema";
+import type { FactsClient } from "@/lib/facts";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
@@ -65,5 +66,33 @@ describe("sync records every run", () => {
 
     const runs = await db.select().from(syncRun);
     expect(runs.map((r) => r.outcome)).toEqual(["applied", "applied", "failed"]);
+  });
+
+  it("refuses a second run while an earlier run is in flight", async () => {
+    await db.insert(syncRun).values({ startedAt: new Date("2026-07-27T10:00:00.000Z") });
+
+    await expect(sync({ db, facts: fakeFacts({}) })).resolves.toEqual({ outcome: "in_flight" });
+    expect(await db.select().from(syncRun)).toHaveLength(1);
+  });
+
+  it("allows exactly one of two concurrent callers to open a run", async () => {
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => { entered = resolve; });
+    const finish = new Promise<void>((resolve) => { release = resolve; });
+    const facts: FactsClient = {
+      async fetchEnrolledStudents() { entered(); await finish; return []; },
+      async fetchActiveStaff() { return []; },
+      async fetchPeople() { return []; },
+    };
+
+    const first = sync({ db, facts });
+    await started;
+    const second = await sync({ db, facts });
+    release();
+
+    await expect(first).resolves.toMatchObject({ outcome: "applied" });
+    expect(second).toEqual({ outcome: "in_flight" });
+    expect(await db.select().from(syncRun)).toHaveLength(1);
   });
 });
