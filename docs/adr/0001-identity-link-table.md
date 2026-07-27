@@ -1,6 +1,8 @@
 # ADR-0001: Identity via portal-owned link table; FACTS is never written
 
-**Status:** Accepted (2026-07-22), amended (2026-07-22 — see Amendment)
+**Status:** Superseded by [ADR-0005](0005-facts-derived-identity.md) (2026-07-27)
+
+ADR-0004 partially superseded this record but was never implemented. ADR-0005 now replaces the remaining link-table decision too. Section 3's no-write outcome remains true for the MVP only as a scope boundary; its claimed Family Portal lockout rationale was disproved by [#37](https://github.com/MattPereira/tabernacle-school-portal/issues/37).
 **Wayfinder:** [map #6](https://github.com/MattPereira/tabernacle-school-portal/issues/6), decided in [#5](https://github.com/MattPereira/tabernacle-school-portal/issues/5) (revised) with [#1](https://github.com/MattPereira/tabernacle-school-portal/issues/1) and [#4](https://github.com/MattPereira/tabernacle-school-portal/issues/4)
 
 ## Context

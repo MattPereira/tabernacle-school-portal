@@ -1,6 +1,8 @@
 # ADR-0003: A sync run is a lifecycle, and every flag is attributed to the run that set it
 
-**Status:** Accepted (2026-07-24)
+**Status:** Accepted in part (2026-07-24); flag attribution superseded by [ADR-0005](0005-facts-derived-identity.md) (2026-07-27)
+
+The sync-run lifecycle remains accepted. ADR-0005 removes flag clearing and `flagged_by_run_id`: without an admin queue, attribution has no consumer. Inactive flags remain, clear automatically when rows reappear, and never affect access.
 **Issue:** [#20](https://github.com/MattPereira/tabernacle-school-portal/issues/20) (admin screen), realising the "clear a run's flags" escape hatch that makes [ADR-0001](0001-identity-link-table.md)'s no-`<50%`-guard sync safe rather than a gamble.
 
 ## Context
