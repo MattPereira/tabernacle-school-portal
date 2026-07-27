@@ -4,8 +4,8 @@ Resolves [issue #7](https://github.com/MattPereira/tabernacle-school-portal/issu
 
 Primary sources, in trust order:
 
-1. `facts/api-definitions.json` — Swagger 2.0 spec of the FACTS SIS API (host `api.factsmgt.com`, 369 paths, 1091 definitions)
-2. `facts/facts-client.mjs`, `facts/fetch-students.mjs`, `facts/fetch-staff.mjs`, `facts/fetch-parents.mjs` — working client code already run against the live API
+1. `reference/facts/api-definitions.json` — Swagger 2.0 spec of the FACTS SIS API (host `api.factsmgt.com`, 369 paths, 1091 definitions)
+2. `scripts/facts/facts-client.mjs`, `scripts/facts/fetch-students.mjs`, `scripts/facts/fetch-staff.mjs`, `scripts/facts/probe-username-fetch.mjs` — working client code already run against the live API
 3. Public web — searched; FACTS API docs are behind a partner portal, nothing citable found
 
 ## TL;DR
@@ -26,7 +26,7 @@ Primary sources, in trust order:
 
 | Field | Notes |
 |---|---|
-| `personStudentId`, `studentId` | both required; **caution**: `/People.personId` matches `personStudentId` for some records and `studentId` for others (legacy vs new) — `fetch-students.mjs` queries the union and falls back |
+| `personStudentId`, `studentId` | both required; **join on `studentId` only** — `/People.personId == studentId`. `personStudentId` is a *different id space*: it also resolves against `/People`, but to an unrelated person. Verified 2026-07-27 on all 535 enrolled students — `studentId` resolved for 535/535, `personStudentId` resolved for 463 and returned a different person's name in 463/463 cases. Joining the union silently attaches wrong names and inflates the cohort to 998 rows. |
 | `school.gradeLevel` | grade level (string, e.g. `"08"`) |
 | `school.status` / `school.substatus` | enrolled status; filterable server-side: `Filters=school.status==Enrolled` (proven in `fetch-students.mjs`) |
 | `school.enrollDate`, `school.withdrawDate`, `school.withdrawReason`, `school.graduationDate`, `school.nextStatus`, `school.nextGradeLevel` | lifecycle fields |
@@ -48,9 +48,11 @@ Proven batching pattern (from all three fetch scripts): `Filters=personId==id1|i
 
 **No email on staff output.** Proven join (`fetch-staff.mjs`): `staffId == personId` in `/People`, so fetch emails via one chunked `/People` request. Filter `active` client-side (no proven server-side filter in the scripts, though Sieve on `active` likely works).
 
-### Parents (bonus, already working)
+### Parents (bonus, proven)
 
-`GET /People/ParentStudent` filtered `studentID==...|...` gives parent-student links (`parentID`, `studentID`, `relationship`, `grandparent` flag); resolve names/emails via `/People`. See `fetch-parents.mjs`.
+`GET /People/ParentStudent` gives parent-student links (`parentID`, `studentID`, `relationship`, `grandparent` flag); resolve names/emails via `/People` on `parentID`. Filterable `studentID==...|...`, or pull unfiltered — proven 2026-07-27 by `probe-username-fetch.mjs`: 10,021 links across 11 pages at `PageSize=1000`, resolving to 1,605 distinct parents of the 535 enrolled students.
+
+An earlier revision of this doc cited a `fetch-parents.mjs`; no such script exists in this repo or its history.
 
 ## Auth model
 
@@ -84,7 +86,7 @@ Email is a **person** attribute (`CreatePersonBaseDto.email` / `email2`), not a 
 
 There is no email-bearing write endpoint under `/Students` — the only student writes are `PUT`/`PATCH /Students/{personStudentId}` and `/Students/{personStudentId}/School` (enrollment data, no email).
 
-**Bulk migration plan:** for N students, N PATCH calls at 10/min ⇒ ~6s per student. E.g. 400 students ≈ 40 minutes, one-time. Recommend PATCH over PUT to avoid needing to round-trip the full `PersonVM`. Mind the `personStudentId`-vs-`studentId` → `personId` mapping quirk when targeting the right person record.
+**Bulk migration plan:** for N students, N PATCH calls at 10/min ⇒ ~6s per student. E.g. 400 students ≈ 40 minutes, one-time. Recommend PATCH over PUT to avoid needing to round-trip the full `PersonVM`. **Target `personId == studentId`** — using `personStudentId` would write to a different, unrelated person (see the Students table above).
 
 ## Caveats
 
