@@ -9,6 +9,8 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
+console.log("[db] hostname", new URL(connectionString).hostname);
+
 // One pool per Vercel Fluid Compute instance. The pg driver provides the
 // interactive transactions sync requires; Vercel drains idle connections
 // before suspending the instance.
