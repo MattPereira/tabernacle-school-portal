@@ -31,7 +31,7 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
         <Section title="Enrolment">
           <dl className="grid gap-5 sm:grid-cols-2">
             <Fact icon={Mail} label="Contact email">
-              {student.contactEmail && <a className="underline underline-offset-4" href={`mailto:${student.contactEmail}`}>{student.contactEmail}</a>}
+              {student.contactEmail}
             </Fact>
             <Fact icon={GraduationCap} label="Enrolled since">{student.enrolledSince && date(student.enrolledSince)}</Fact>
             <Fact icon={CalendarDays} label="Birthdate">{student.birthdate && date(student.birthdate)}</Fact>

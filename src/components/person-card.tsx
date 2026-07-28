@@ -28,9 +28,8 @@ export function PersonCard({
   name: string;
   photoUrl: string | null;
   topRight?: ReactNode;
-  // A roster card can be a destination while keeping its email as a separate
-  // interactive target — the full-card link is an overlay sibling, not a
-  // wrapper around the mailto link.
+  // A roster card can be a destination. Its full-card link is a sibling rather
+  // than a wrapper so this component keeps valid list markup.
   href?: string;
   linkLabel?: string;
   id?: string;
@@ -51,27 +50,22 @@ export function PersonCard({
         <p className={`truncate font-medium ${name ? "" : "text-muted-foreground"}`}>
           {name || missingName}
         </p>
-        {children && <div className="relative z-20">{children}</div>}
+        {children}
       </div>
     </li>
   );
 }
 
-// The line under a name on both rosters: a mailto to the address FACTS holds,
-// truncated to the card and carrying the whole thing in its title. Shared so
-// that a colleague's contact line and a student's stay the same line — they are
-// the same thing, and only the person differs. A card whose person has no
+// The line under a name on both rosters: the contact email FACTS holds,
+// displayed verbatim and truncated to the card. Shared so that a colleague's
+// contact line and a student's stay the same line. A card whose person has no
 // address renders it not at all rather than leaving a blank row.
 export function PersonEmail({ email }: { email: string | null }) {
   if (!email) return null;
 
   return (
-    <a
-      className="block truncate text-sm text-muted-foreground hover:text-foreground hover:underline"
-      href={`mailto:${encodeURI(email)}`}
-      title={email}
-    >
+    <span className="block truncate text-sm text-muted-foreground" title={email}>
       {email}
-    </a>
+    </span>
   );
 }
