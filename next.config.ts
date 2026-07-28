@@ -8,11 +8,16 @@ const pictures = new URL(FACTS_PICTURE_BASE_URL);
 
 const nextConfig: NextConfig = {
   images: {
-    // The ceiling on what the image layer may ever fetch: the school's FACTS
-    // tenant pictures folder, host *and* path. Staff photos don't currently go
-    // through the optimizer at all — they're plain <img> straight from FACTS,
-    // because the portal is to store no image bytes (#52) — so this is the
-    // allowlist standing ready, not a description of today's traffic.
+    // The only place the optimizer may fetch from: the school's FACTS tenant
+    // pictures folder, host *and* path, so a filename that slipped past
+    // derivation still can't make this an open image proxy.
+    //
+    // Staff photos do go through the optimizer, which means Next fetches each
+    // portrait server-side and caches the resized bytes (minimumCacheTTL, 4h by
+    // default). That's a deliberate reversal of #52's "portal stores no image
+    // bytes": the FACTS pictures URLs are public, so the cache exposes nothing
+    // FACTS doesn't already serve, and a photo up to 4h stale is worth not
+    // shipping a full portrait per row.
     remotePatterns: [
       {
         protocol: "https",
