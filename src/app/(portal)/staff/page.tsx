@@ -1,9 +1,9 @@
 import { StaffScreen } from "@/components/staff-screen";
 import { db } from "@/lib/db/client";
-import { listStaff } from "@/lib/staff";
+import { groupByDepartment, listStaff } from "@/lib/staff";
 
 // The (portal) layout is this page's only gate — no feature-specific access
 // rule. Reads the snapshot, so it never waits on a live FACTS request.
 export default async function StaffPage() {
-  return <StaffScreen staff={await listStaff({ db })} />;
+  return <StaffScreen groups={groupByDepartment(await listStaff({ db }))} />;
 }

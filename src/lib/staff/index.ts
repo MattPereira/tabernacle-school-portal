@@ -33,6 +33,16 @@ export type StaffEntry = {
   photoUrl: string | null;
 };
 
+// One department's colleagues, in the order Staff shows them. FACTS' department
+// text is free-form, so the buckets are whatever FACTS says plus one for the
+// rows it left blank.
+export type StaffGroup = { department: string; staff: StaffEntry[] };
+
+// What a row with no department is filed under. Named rather than folded into
+// the others: an active colleague FACTS has no department for is a gap worth
+// seeing, the same way a personal contact email is.
+export const NO_DEPARTMENT = "No department";
+
 // Active staff only: a flagged row stays in the snapshot (it still grants
 // access) but has left the school's current population, so Staff omits it.
 export async function listStaff(deps: StaffDeps): Promise<StaffEntry[]> {
@@ -65,6 +75,29 @@ export async function listStaff(deps: StaffDeps): Promise<StaffEntry[]> {
     initials: initials(firstName, lastName),
     photoUrl: factsPictureUrl(pathToPicture),
   }));
+}
+
+// The roster split into its departments. Within a department the entries keep
+// listStaff's surname order; the departments themselves read alphabetically,
+// case-insensitively, with the blank bucket last — it's a hole in the data, not
+// a place people work.
+export function groupByDepartment(staff: StaffEntry[]): StaffGroup[] {
+  const groups = new Map<string, StaffEntry[]>();
+
+  for (const entry of staff) {
+    const department = entry.department ?? NO_DEPARTMENT;
+    const bucket = groups.get(department);
+    if (bucket) bucket.push(entry);
+    else groups.set(department, [entry]);
+  }
+
+  return [...groups]
+    .map(([department, entries]) => ({ department, staff: entries }))
+    .sort((a, b) => {
+      if (a.department === NO_DEPARTMENT) return 1;
+      if (b.department === NO_DEPARTMENT) return -1;
+      return a.department.localeCompare(b.department, undefined, { sensitivity: "base" });
+    });
 }
 
 // First and last only — a middle initial in the circle reads as noise at 40px.
