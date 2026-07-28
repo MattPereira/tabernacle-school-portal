@@ -47,7 +47,18 @@ export const student = (studentId: number, gradeLevel = "5"): FactsStudent => ({
   status: "Enrolled",
 });
 
-export const staffMember = (staffId: number): FactsStaff => ({ staffId });
+// Name parts and department default to absent; a test that cares says so.
+export const staffMember = (
+  staffId: number,
+  profile: Partial<Omit<FactsStaff, "staffId">> = {},
+): FactsStaff => ({
+  staffId,
+  firstName: null,
+  middleName: null,
+  lastName: null,
+  department: null,
+  ...profile,
+});
 
 // A population of `count` students, ids from `from`, with matching people rows.
 export function population(count: number, from = 1000) {

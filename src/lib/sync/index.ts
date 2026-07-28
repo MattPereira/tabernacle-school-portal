@@ -55,7 +55,12 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
       });
       count += await flagMissing(tx, factsStudent, factsStudent.studentId, students.map((row) => row.studentId));
       if (staff.length) await tx.insert(factsStaff).values(staff.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
-        target: factsStaff.staffId, set: { inactive: false, lastSeenAt: seenAt },
+        target: factsStaff.staffId,
+        set: {
+          firstName: sql`excluded.first_name`, middleName: sql`excluded.middle_name`,
+          lastName: sql`excluded.last_name`, department: sql`excluded.department`,
+          inactive: false, lastSeenAt: seenAt,
+        },
       });
       count += await flagMissing(tx, factsStaff, factsStaff.staffId, staff.map((row) => row.staffId));
       return count;

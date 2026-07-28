@@ -12,8 +12,12 @@ Terms with settled meanings in this project. Use these words exactly; don't drif
 - **Sync run** (`sync_run`) — one row per sync, created when the run *starts* and finalized when it *ends*; `outcome` (`applied` | `failed`) and `finished_at` are null while in flight, or if the run crashed. The home page's answer to "did the last sync work?".
 - **Flagged (inactive)** — a FACTS snapshot row that left the FACTS active set: kept and marked `inactive`, never deleted. Identity matching deliberately ignores `inactive` on person, staff, and student rows: access derives from any row a sync has ever seen. Workspace suspension is the only revocation lever.
 - **Walking skeleton** — the MVP: staff-only login, home page, and home-page sync status/trigger. A chassis for future features, deliberately feature-free.
+- **Controlled prototype** — a portal feature intended for evaluation by the developer and school super-admin, without prototype-specific authorization. The **Staff** feature appears in shared navigation and is technically available to every authenticated staff user; the audience restriction is operational only.
+- **Staff entry** — one row in the portal's **Staff** list for a staff member currently present in FACTS' active staff set. Inactive staff remain in the FACTS snapshot but are absent from Staff and its search results; the prototype has no separate detail pages.
+- **Professional staff profile** — the approved FACTS data describing a staff member: name, department, photo, and contact email. Contact email is included even when personal and displayed without a special label. School assignment is omitted because this is a single-school portal; job title and grade taught are omitted because verified FACTS read endpoints do not expose reliable values; education and certification are deferred because current FACTS data has no records for active staff. Other private, demographic, credential, medical, financial, government-identifier, free-text note, and custom-field data is never stored, logged, or displayed; fields unavoidably returned by an approved FACTS endpoint are discarded during normalization.
 
 ## Avoided terms
 
 - "FACTS email" — say **contact email**. It is the FACTS-owned field the portal uses to resolve a Google login; it is not a second login identity.
 - "active" as an access condition — snapshot presence grants identity even when the matching rows are flagged inactive.
+- "Directory" in the UI — label the feature and navigation item **Staff**.

@@ -43,6 +43,13 @@ export const factsStudent = pgTable("facts_student", {
 
 export const factsStaff = pgTable("facts_staff", {
   staffId: integer("staff_id").primaryKey(),
+  // The professional staff profile FACTS' staff endpoint owns — its own name
+  // parts, not the person row's, so a staff member is listable even when their
+  // /People row is missing. Department is FACTS' text; blank means absent.
+  firstName: text("first_name"),
+  middleName: text("middle_name"),
+  lastName: text("last_name"),
+  department: text(),
   ...snapshotFields,
 });
 

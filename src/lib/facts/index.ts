@@ -27,8 +27,16 @@ export type FactsStudent = {
   status: string | null;
 };
 
+// The professional staff profile, as FACTS' staff endpoint owns it. Only the
+// approved fields cross this interface — everything else FACTS sends (spouse,
+// phones, HR dates, demographics, …) stops here (CONTEXT.md).
 export type FactsStaff = {
   staffId: number;
+  firstName: string | null;
+  middleName: string | null;
+  lastName: string | null;
+  // FACTS' own department text, trimmed. Blank means "no department".
+  department: string | null;
 };
 
 // The seam sync is written against. Three reads, no join — composing them is a
@@ -55,6 +63,9 @@ export type FactsConfig = {
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// FACTS pads free-text fields and sends blanks for "not set" — both mean absent.
+const text = (value: string | null | undefined): string | null => value?.trim() || null;
 
 export function createFactsClient(config: FactsConfig): FactsClient {
   const {
@@ -149,8 +160,16 @@ export function createFactsClient(config: FactsConfig): FactsClient {
     async fetchActiveStaff() {
       const rows = await getAll("/people/Staff");
       // The endpoint returns former staff too; `active` is the live flag. This
-      // is a *staff* flag, not FACTS' junk `administrator` role signal.
-      return rows.filter((row) => row.active).map((row) => ({ staffId: Number(row.staffId) }));
+      // is a *staff* flag, not FACTS' junk `administrator` role signal, and it
+      // is the only one that decides inclusion — `staffDirectoryBlock` is
+      // FACTS' own directory setting and means nothing to the portal.
+      return rows.filter((row) => row.active).map((row) => ({
+        staffId: Number(row.staffId),
+        firstName: text(row.firstName),
+        middleName: text(row.middleName),
+        lastName: text(row.lastName),
+        department: text(row.department),
+      }));
     },
 
     async fetchPeople(personIds) {
@@ -177,7 +196,9 @@ type FactsRow = {
   studentId?: number;
   staffId?: number;
   firstName?: string | null;
+  middleName?: string | null;
   lastName?: string | null;
+  department?: string | null;
   email?: string | null;
   active?: boolean;
   school?: { gradeLevel?: string | null; status?: string | null };

@@ -56,6 +56,56 @@ describe("sync populates the FACTS snapshot", () => {
     ]);
   });
 
+  it("stores the staff profile fields FACTS owns", async () => {
+    const facts = fakeFacts({
+      staff: [
+        staffMember(10, { firstName: "Jane", middleName: "Q", lastName: "Doe", department: "Middle School" }),
+        staffMember(11, { firstName: "Ada", lastName: "Byron" }),
+      ],
+      people: [person(10, "Jane", "Doe", "jdoe@tbs.org"), person(11, "Ada", "Byron")],
+    });
+
+    await sync({ db, facts });
+
+    expect(await db.select().from(factsStaff)).toEqual([
+      expect.objectContaining({
+        staffId: 10,
+        firstName: "Jane",
+        middleName: "Q",
+        lastName: "Doe",
+        department: "Middle School",
+      }),
+      expect.objectContaining({
+        staffId: 11,
+        firstName: "Ada",
+        middleName: null,
+        lastName: "Byron",
+        department: null,
+      }),
+    ]);
+  });
+
+  it("overwrites staff profile fields on the next run — FACTS always wins", async () => {
+    const first = staffMember(10, { firstName: "Jane", middleName: "Q", lastName: "Doe", department: "Middle School" });
+    await sync({ db, facts: fakeFacts({ staff: [first], people: [person(10, "Jane", "Doe")] }) });
+
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [staffMember(10, { firstName: "Jane", lastName: "Doe-Smith" })],
+        people: [person(10, "Jane", "Doe-Smith")],
+      }),
+    });
+
+    const [staffRow] = await db.select().from(factsStaff).where(eq(factsStaff.staffId, 10));
+    expect(staffRow).toMatchObject({
+      firstName: "Jane",
+      middleName: null,
+      lastName: "Doe-Smith",
+      department: null,
+    });
+  });
+
   it("reads people once for a person who is both student and staff", async () => {
     // The two populations share the personId space, so the join must dedupe
     // rather than include the same person twice in the FACTS snapshot.
