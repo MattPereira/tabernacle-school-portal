@@ -42,7 +42,7 @@ export function HomeScreen({
           >
             <Card className="h-full py-5">
               <CardHeader className="grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-x-3 gap-y-1 px-5">
-                <destination.icon className="row-span-2 self-center" aria-hidden="true" />
+                <destination.icon className="row-start-1 self-center" aria-hidden="true" />
                 <CardTitle className="col-start-2 flex items-center gap-2">
                   {destination.label}
                   <Badge variant="secondary" aria-label={`${counts[destination.countKey]} active ${destination.label.toLowerCase()}`}>
