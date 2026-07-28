@@ -28,7 +28,7 @@ describe("sync populates the FACTS snapshot", () => {
       students: [student(1206161, "7")],
       staff: [staffMember(1203006)],
       people: [
-        person(1206161, "Benjamin", "Olson", "parent@gmail.com"),
+        person(1206161, "Benjamin", "Olson", { contactEmail: "parent@gmail.com" }),
         person(1203006, "Jane", "Doe"),
       ],
     });
@@ -62,7 +62,7 @@ describe("sync populates the FACTS snapshot", () => {
         staffMember(10, { firstName: "Jane", middleName: "Q", lastName: "Doe", department: "Middle School" }),
         staffMember(11, { firstName: "Ada", lastName: "Byron" }),
       ],
-      people: [person(10, "Jane", "Doe", "jdoe@tbs.org"), person(11, "Ada", "Byron")],
+      people: [person(10, "Jane", "Doe", { contactEmail: "jdoe@tbs.org" }), person(11, "Ada", "Byron")],
     });
 
     await sync({ db, facts });
@@ -106,6 +106,38 @@ describe("sync populates the FACTS snapshot", () => {
     });
   });
 
+  it("stores the person picture filename FACTS owns", async () => {
+    const facts = fakeFacts({
+      staff: [staffMember(10), staffMember(11)],
+      people: [
+        person(10, "Jane", "Doe", { contactEmail: "jdoe@tbs.org", pathToPicture: "1203006.jpg" }),
+        person(11, "Ada", "Byron"),
+      ],
+    });
+
+    await sync({ db, facts });
+
+    expect(await db.select().from(factsPerson)).toEqual([
+      expect.objectContaining({ personId: 10, pathToPicture: "1203006.jpg" }),
+      expect.objectContaining({ personId: 11, pathToPicture: null }),
+    ]);
+  });
+
+  it("overwrites a picture filename that FACTS has cleared", async () => {
+    await sync({
+      db,
+      facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "Jane", "Doe", { pathToPicture: "old.jpg" })] }),
+    });
+
+    await sync({
+      db,
+      facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "Jane", "Doe")] }),
+    });
+
+    const [snapshotPerson] = await db.select().from(factsPerson).where(eq(factsPerson.personId, 10));
+    expect(snapshotPerson).toMatchObject({ pathToPicture: null });
+  });
+
   it("reads people once for a person who is both student and staff", async () => {
     // The two populations share the personId space, so the join must dedupe
     // rather than include the same person twice in the FACTS snapshot.
@@ -134,13 +166,13 @@ describe("sync populates the FACTS snapshot", () => {
   });
 
   it("overwrites snapshot fields on the next run — FACTS always wins", async () => {
-    await sync({ db, facts: fakeFacts({ students: [student(42, "5")], people: [person(42, "Al", "Brown", "old@x.com")] }) });
+    await sync({ db, facts: fakeFacts({ students: [student(42, "5")], people: [person(42, "Al", "Brown", { contactEmail: "old@x.com" })] }) });
 
     await sync({
       db,
       facts: fakeFacts({
         students: [student(42, "6")],
-        people: [person(42, "Alastair", "Brown-Smith", "new@x.com")],
+        people: [person(42, "Alastair", "Brown-Smith", { contactEmail: "new@x.com" })],
       }),
     });
 

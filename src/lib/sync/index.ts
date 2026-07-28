@@ -46,7 +46,11 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
       let count = 0;
       if (people.length) await tx.insert(factsPerson).values(people.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
         target: factsPerson.personId,
-        set: { firstName: sql`excluded.first_name`, lastName: sql`excluded.last_name`, contactEmail: sql`excluded.contact_email`, inactive: false, lastSeenAt: seenAt },
+        set: {
+          firstName: sql`excluded.first_name`, lastName: sql`excluded.last_name`,
+          contactEmail: sql`excluded.contact_email`, pathToPicture: sql`excluded.path_to_picture`,
+          inactive: false, lastSeenAt: seenAt,
+        },
       });
       count += await flagMissing(tx, factsPerson, factsPerson.personId, people.map((row) => row.personId));
       if (students.length) await tx.insert(factsStudent).values(students.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({

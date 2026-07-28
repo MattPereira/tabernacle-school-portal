@@ -29,6 +29,9 @@ export const factsPerson = pgTable("facts_person", {
   lastName: text("last_name"),
   // Contact email — FACTS owns it and request-time identity derives from it.
   contactEmail: text("contact_email"),
+  // Filename of the profile photo FACTS hosts. The bytes stay on FACTS' tenant
+  // site; the portal keeps the name and derives the URL (lib/facts/pictures).
+  pathToPicture: text("path_to_picture"),
   ...snapshotFields,
 });
 

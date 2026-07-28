@@ -34,11 +34,19 @@ export function fakeFacts(fixture: FactsFixture): FactsClient {
   };
 }
 
-export const person = (personId: number, firstName: string, lastName: string, contactEmail: string | null = null): FactsPerson => ({
+// Contact email and picture default to absent; a test that cares says so.
+export const person = (
+  personId: number,
+  firstName: string,
+  lastName: string,
+  profile: Partial<Pick<FactsPerson, "contactEmail" | "pathToPicture">> = {},
+): FactsPerson => ({
   personId,
   firstName,
   lastName,
-  contactEmail,
+  contactEmail: null,
+  pathToPicture: null,
+  ...profile,
 });
 
 export const student = (studentId: number, gradeLevel = "5"): FactsStudent => ({

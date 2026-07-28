@@ -1,0 +1,1 @@
+ALTER TABLE "facts_person" ADD COLUMN "path_to_picture" text;

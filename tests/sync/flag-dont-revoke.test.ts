@@ -27,7 +27,7 @@ describe("sync flags, never revokes", () => {
   const twoStudents = fakeFacts({
     students: [student(1), student(2)],
     staff: [staffMember(3)],
-    people: [person(1, "Ann", "Alpha"), person(2, "Bob", "Beta", "bob@tbs.org"), person(3, "Cy", "Gamma")],
+    people: [person(1, "Ann", "Alpha"), person(2, "Bob", "Beta", { contactEmail: "bob@tbs.org" }), person(3, "Cy", "Gamma")],
   });
 
   it("flags a departed person instead of deleting them", async () => {

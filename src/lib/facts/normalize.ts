@@ -14,6 +14,9 @@ export type FactsPerson = {
   lastName: string | null;
   // Contact email. FACTS owns it; staff access derives from an exact match.
   contactEmail: string | null;
+  // The filename of the profile photo FACTS hosts, trimmed. Blank means "no
+  // photo"; turning it into a URL is ./pictures' job, not this projection's.
+  pathToPicture: string | null;
 };
 
 export type FactsStudent = {
@@ -44,6 +47,7 @@ export type FactsRow = {
   lastName?: string | null;
   department?: string | null;
   email?: string | null;
+  pathToPicture?: string | null;
   active?: boolean;
   school?: { gradeLevel?: string | null; status?: string | null };
 };
@@ -79,4 +83,5 @@ export const toPeople = (rows: FactsRow[]): FactsPerson[] =>
     firstName: row.firstName ?? null,
     lastName: row.lastName ?? null,
     contactEmail: row.email || null,
+    pathToPicture: trimmedOrNull(row.pathToPicture),
   }));

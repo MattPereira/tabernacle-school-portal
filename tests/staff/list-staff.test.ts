@@ -27,13 +27,70 @@ describe("listStaff", () => {
       db,
       facts: fakeFacts({
         staff: [staffMember(10, { firstName: "Jane", middleName: "Q", lastName: "Doe", department: "Middle School" })],
-        people: [person(10, "Jane", "Doe", "jdoe@tbs.org")],
+        people: [person(10, "Jane", "Doe", { contactEmail: "jdoe@tbs.org", pathToPicture: "1203006.jpg" })],
       }),
     });
 
     expect(await listStaff({ db })).toEqual([
-      { staffId: 10, name: "Jane Q Doe", department: "Middle School", contactEmail: "jdoe@tbs.org" },
+      {
+        staffId: 10,
+        name: "Jane Q Doe",
+        initials: "JD",
+        department: "Middle School",
+        contactEmail: "jdoe@tbs.org",
+        photoUrl: "https://tcs-ca.client.factsmgt.com/ftp/tcs-ca/pictures/1203006.jpg",
+      },
     ]);
+  });
+
+  it("carries first and last initials for the rows with no photo to show", async () => {
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [
+          staffMember(10, { firstName: "ada", middleName: "Byron", lastName: "lovelace" }),
+          staffMember(11, { lastName: "Zeta" }),
+          staffMember(12, { firstName: "Prince" }),
+          staffMember(13),
+        ],
+        people: [],
+      }),
+    });
+
+    expect(await listStaff({ db })).toMatchObject([
+      // The middle name stays out of the circle.
+      { initials: "AL" },
+      { initials: "Z" },
+      { initials: "P" },
+      // Nothing to build initials from is a blank circle, not a placeholder.
+      { initials: "" },
+    ]);
+  });
+
+  it("has no photo when FACTS holds no picture filename", async () => {
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [staffMember(10, { firstName: "Jane", lastName: "Doe" })],
+        people: [person(10, "Jane", "Doe")],
+      }),
+    });
+
+    expect(await listStaff({ db })).toMatchObject([{ photoUrl: null }]);
+  });
+
+  it("has no photo when the picture filename is not a plain filename", async () => {
+    // A path that would leave the FACTS pictures location is treated as no
+    // photo at all, so the row falls back to initials.
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [staffMember(10, { firstName: "Jane", lastName: "Doe" })],
+        people: [person(10, "Jane", "Doe", { pathToPicture: "../../../etc/passwd" })],
+      }),
+    });
+
+    expect(await listStaff({ db })).toMatchObject([{ photoUrl: null }]);
   });
 
   it("omits staff FACTS no longer lists as active", async () => {
@@ -52,7 +109,7 @@ describe("listStaff", () => {
     await sync({ db, facts: fakeFacts({ staff: [staffMember(10, { firstName: "Jane", lastName: "Doe" })], people: [] }) });
 
     expect(await listStaff({ db })).toEqual([
-      { staffId: 10, name: "Jane Doe", department: null, contactEmail: null },
+      { staffId: 10, name: "Jane Doe", initials: "JD", department: null, contactEmail: null, photoUrl: null },
     ]);
   });
 
@@ -94,10 +151,10 @@ describe("listStaff", () => {
   it("still lists a staff member FACTS gave no name at all", async () => {
     // Nothing to render but the email. Dropping the row would hide a real
     // FACTS data problem, which is the same call as the utility names above.
-    await sync({ db, facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "", "", "x@tbs.org")] }) });
+    await sync({ db, facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "", "", { contactEmail: "x@tbs.org" })] }) });
 
     expect(await listStaff({ db })).toEqual([
-      { staffId: 10, name: "", department: null, contactEmail: "x@tbs.org" },
+      { staffId: 10, name: "", initials: "", department: null, contactEmail: "x@tbs.org", photoUrl: null },
     ]);
   });
 

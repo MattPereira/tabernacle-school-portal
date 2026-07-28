@@ -1,3 +1,4 @@
+import { StaffAvatar } from "@/components/staff-avatar";
 import type { StaffEntry } from "@/lib/staff";
 
 // A compact row per colleague — the whole active population on one page, and
@@ -17,13 +18,16 @@ export function StaffScreen({ staff }: { staff: StaffEntry[] }) {
           {staff.map((entry) => (
             <li
               key={entry.staffId}
-              className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
-              <div className="min-w-0">
-                <p className="font-medium">{entry.name}</p>
-                {entry.department && (
-                  <p className="text-sm text-muted-foreground">{entry.department}</p>
-                )}
+              <div className="flex min-w-0 items-center gap-3">
+                <StaffAvatar initials={entry.initials} photoUrl={entry.photoUrl} />
+                <div className="min-w-0">
+                  <p className="font-medium">{entry.name}</p>
+                  {entry.department && (
+                    <p className="text-sm text-muted-foreground">{entry.department}</p>
+                  )}
+                </div>
               </div>
               {entry.contactEmail && (
                 <a
