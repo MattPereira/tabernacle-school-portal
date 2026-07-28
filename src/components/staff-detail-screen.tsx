@@ -16,7 +16,7 @@ export function StaffDetailScreen({ staff }: { staff: StaffDetail }) {
           <div className="flex items-center gap-4">
             <PersonAvatar initials={staff.initials} photoUrl={staff.photoUrl} size="large" />
             <div className="min-w-0 space-y-1">
-              <h1 className={`text-3xl font-medium ${staff.name ? "" : "text-muted-foreground"}`}>
+              <h1 className={`text-2xl font-medium ${staff.name ? "" : "text-muted-foreground"}`}>
                 {staff.name || "No name in FACTS"}
               </h1>
               {staff.contactEmail && <p className="truncate text-sm text-muted-foreground">{staff.contactEmail}</p>}

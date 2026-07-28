@@ -33,14 +33,14 @@ describe("resolveAccess", () => {
     await person(1, "staff@tbs.org");
     await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
 
-    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
+    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff", staffId: 1 });
   });
 
   it("normalizes trim and casing only", async () => {
     await person(1, "staff+portal@tbs.org");
     await db.insert(factsStaff).values({ staffId: 1, lastSeenAt: seenAt });
 
-    await expect(resolveAccess("  STAFF+PORTAL@TBS.ORG  ", { db })).resolves.toEqual({ kind: "staff" });
+    await expect(resolveAccess("  STAFF+PORTAL@TBS.ORG  ", { db })).resolves.toEqual({ kind: "staff", staffId: 1 });
     await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
     await expect(resolveAccess("staffportal@tbs.org", { db })).resolves.toEqual({ kind: "unmatched" });
   });
@@ -82,13 +82,13 @@ describe("resolveAccess", () => {
       { studentId: 3, lastSeenAt: seenAt },
     ]);
 
-    await expect(resolveAccess("family@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
+    await expect(resolveAccess("family@tbs.org", { db })).resolves.toEqual({ kind: "staff", staffId: 1 });
   });
 
   it("matches inactive snapshot rows in every table", async () => {
     await person(1, "staff@tbs.org", true);
     await db.insert(factsStaff).values({ staffId: 1, inactive: true, lastSeenAt: seenAt });
-    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff" });
+    await expect(resolveAccess("staff@tbs.org", { db })).resolves.toEqual({ kind: "staff", staffId: 1 });
 
     await person(2, "student@tbs.org", true);
     await db.insert(factsStudent).values({ studentId: 2, inactive: true, lastSeenAt: seenAt });

@@ -8,7 +8,7 @@ export type IdentityDeps = {
   db: PgDatabase<PgQueryResultHKT, typeof schema>;
 };
 
-export type Access = { kind: "staff" } | { kind: "student" } | { kind: "unmatched" };
+export type Access = { kind: "staff"; staffId: number } | { kind: "student" } | { kind: "unmatched" };
 
 export const SCHOOL_DOMAIN = "tbs.org";
 
@@ -35,8 +35,8 @@ export async function resolveAccess(email: string, deps: IdentityDeps): Promise<
     .leftJoin(factsStudent, eq(factsStudent.studentId, factsPerson.personId))
     .where(eq(factsPerson.contactEmail, loginIdentity));
 
-  const staff = new Set(matches.flatMap((match) => (match.staffId === null ? [] : [match.personId])));
-  if (staff.size === 1) return { kind: "staff" };
+  const staff = new Set(matches.flatMap((match) => (match.staffId === null ? [] : [match.staffId])));
+  if (staff.size === 1) return { kind: "staff", staffId: staff.values().next().value! };
   if (staff.size > 1) return { kind: "unmatched" };
 
   const students = new Set(matches.flatMap((match) => (match.studentId === null ? [] : [match.personId])));

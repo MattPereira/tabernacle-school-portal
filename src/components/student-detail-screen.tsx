@@ -1,7 +1,6 @@
 import { CalendarDays, GraduationCap, MapPin, UserRound } from "lucide-react";
 
 import { PersonAvatar } from "@/components/person-avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { StudentDetail } from "@/lib/students";
 
@@ -12,15 +11,14 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
         <CardContent>
-          <div className="relative flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <PersonAvatar initials={student.initials} photoUrl={student.photoUrl} size="large" />
-            <div className={`min-w-0 space-y-1 ${student.status ? "pr-24" : ""}`}>
-              <h1 className={`text-3xl font-medium ${student.name ? "" : "text-muted-foreground"}`}>
+            <div className="min-w-0 space-y-1">
+              <h1 className={`text-2xl font-medium ${student.name ? "" : "text-muted-foreground"}`}>
                 {student.name || "No name in FACTS"}
               </h1>
               {student.contactEmail && <p className="truncate text-sm text-muted-foreground">{student.contactEmail}</p>}
             </div>
-            {student.status && <Badge className="absolute right-0 top-0" variant="secondary">{student.status}</Badge>}
           </div>
         </CardContent>
       </Card>

@@ -29,7 +29,7 @@ export async function getViewer(): Promise<Viewer> {
 
   const access = await resolveAccess(email, { db });
   switch (access.kind) {
-    case "staff": return { state: "staff", name, email };
+    case "staff": return { state: "staff", name, email, staffId: access.staffId };
     case "student": return { state: "student", name, email };
     case "unmatched": return { state: "unmatched", name, email };
   }

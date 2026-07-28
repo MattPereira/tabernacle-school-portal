@@ -12,7 +12,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -40,19 +39,18 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <p className="px-2 text-lg font-medium group-data-[collapsible=icon]:sr-only">
-          Tabernacle School Portal
+        <p className="px-2 text-xl font-medium group-data-[collapsible=icon]:sr-only">
+          Tabernacle Portal
         </p>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sm">Portal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    size="lg"
+                    size="xl"
                     className="group-data-[collapsible=icon]:p-2!"
                     isActive={pathname === item.href}
                     render={<Link href={item.href} />}
@@ -71,9 +69,9 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              size="lg"
+              size="xl"
               className="group-data-[collapsible=icon]:p-2!"
-              render={<Link href="/" />}
+              render={<Link href={`/staff/${viewer.staffId}`} />}
               tooltip={`${viewer.name} (staff)`}
             >
               <UserRoundIcon />
@@ -83,7 +81,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <form action={signOut}>
               <SidebarMenuButton
-                size="lg"
+                size="xl"
                 className="group-data-[collapsible=icon]:p-2!"
                 type="submit"
                 tooltip="Sign out"
