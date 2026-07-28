@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { PersonAvatar } from "@/components/person-avatar";
 import { cn } from "@/components/ui/utils";
@@ -17,6 +18,9 @@ export function PersonCard({
   name,
   photoUrl,
   topRight,
+  href,
+  linkLabel,
+  id,
   children,
 }: {
   initials: string;
@@ -24,13 +28,20 @@ export function PersonCard({
   name: string;
   photoUrl: string | null;
   topRight?: ReactNode;
+  // A roster card can be a destination while keeping its email as a separate
+  // interactive target — the full-card link is an overlay sibling, not a
+  // wrapper around the mailto link.
+  href?: string;
+  linkLabel?: string;
+  id?: string;
   children?: ReactNode;
 }) {
   return (
-    <li className="relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-      {topRight && <div className="absolute right-4 top-3 max-w-28 truncate text-sm text-muted-foreground">{topRight}</div>}
-      <PersonAvatar initials={initials} photoUrl={photoUrl} />
-      <div className={cn("min-w-0", topRight && "pr-28")}>
+    <li className="relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3" id={id}>
+      {href && <Link aria-label={linkLabel} className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" href={href} />}
+      {topRight && <div className="absolute right-4 top-3 z-10 max-w-28 truncate text-sm text-muted-foreground">{topRight}</div>}
+      <div className="relative z-10"><PersonAvatar initials={initials} photoUrl={photoUrl} /></div>
+      <div className={cn("relative z-10 min-w-0", topRight && "pr-28")}>
         <p className={`truncate font-medium ${name ? "" : "text-muted-foreground"}`}>
           {name || missingName}
         </p>

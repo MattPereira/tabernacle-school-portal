@@ -9,6 +9,8 @@ import type * as schema from "@/lib/db/schema";
 import { initials } from "@/lib/facts/initials";
 import { factsPictureUrl } from "@/lib/facts/pictures";
 
+export { getStudentDetail, type StudentDetail, type StudentDetailDeps } from "./detail";
+
 export type StudentDeps = { db: PgDatabase<PgQueryResultHKT, typeof schema> };
 
 // One Student entry, display-ready: the page arranges these, it doesn't decide

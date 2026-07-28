@@ -26,6 +26,7 @@ export function StaffScreen({ groups }: { groups: StaffGroup[] }) {
               {group.staff.map((entry) => (
                 <PersonCard
                   key={entry.staffId}
+                  id={`staff-${entry.staffId}`}
                   initials={entry.initials}
                   name={entry.name}
                   photoUrl={entry.photoUrl}

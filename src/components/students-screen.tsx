@@ -115,12 +115,14 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
                     {homeroom.students.map((entry) => (
                       <PersonCard
                         key={entry.studentId}
+                        href={`/students/${entry.studentId}`}
                         initials={entry.initials}
                         // A child FACTS holds no person row for still belongs on
                         // the roster; the gap is theirs to see, not ours to hide.
                         missingName="No name in FACTS"
                         name={entry.name}
                         photoUrl={entry.photoUrl}
+                        linkLabel={`View ${entry.name || "student with no name in FACTS"}`}
                       >
                         <PersonEmail email={entry.contactEmail} />
                       </PersonCard>
