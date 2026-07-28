@@ -2,7 +2,7 @@ import { DatabaseIcon, TriangleAlertIcon } from "lucide-react";
 
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SyncRun } from "@/lib/db/schema";
 
 const schoolDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -25,13 +25,20 @@ export function FactsSyncCard({
   const appliedAt = latestAppliedRun?.finishedAt;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Data from FACTS</CardTitle>
-        <CardDescription>Staff and student information is copied from FACTS.</CardDescription>
-        <CardAction><DatabaseIcon aria-hidden="true" /></CardAction>
+    <Card className="py-5">
+      <CardHeader className="grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] gap-x-3 gap-y-1 px-5">
+        <DatabaseIcon className="row-start-1 self-center" aria-hidden="true" />
+        <CardTitle className="col-start-2">Data</CardTitle>
+        <CardDescription className="col-start-2 row-start-2">Staff and student information is copied from FACTS.</CardDescription>
+        {!failed && (
+          <CardAction className="col-start-3 row-span-2 row-start-1 self-start">
+            <form action={runSync}>
+              <SubmitButton disabled={inFlight}>{inFlight ? "Sync in progress…" : "Sync now"}</SubmitButton>
+            </form>
+          </CardAction>
+        )}
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-4 px-5">
         <p className="text-sm text-muted-foreground">
           {appliedAt ? (
             <>Last synced <time dateTime={appliedAt.toISOString()}>{schoolDateTimeFormatter.format(appliedAt)}</time></>
@@ -48,13 +55,6 @@ export function FactsSyncCard({
           </Alert>
         )}
       </CardContent>
-      {!failed && (
-        <CardFooter>
-          <form action={runSync}>
-            <SubmitButton disabled={inFlight}>{inFlight ? "Sync in progress…" : "Sync now"}</SubmitButton>
-          </form>
-        </CardFooter>
-      )}
     </Card>
   );
 }
