@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 import { PersonAvatar } from "@/components/person-avatar";
 
-// One person in a roster: face or initials, their name, and one line under it —
-// a contact email on Staff, a homeroom on Students. The line itself is the
-// caller's, because only the caller knows whether it links anywhere.
+// One person in a roster: face or initials, their name, and optionally one line
+// under it — a contact email on Staff. The line itself is the caller's, because
+// only the caller knows whether it links anywhere; Students passes none, having
+// put the homeroom in the heading over the card instead.
 //
 // `missingName` is what to say when FACTS has no name to show. Passing it opts
 // into a visible gap instead of a blank space; leaving it out renders nothing,

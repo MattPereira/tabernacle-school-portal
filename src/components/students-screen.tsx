@@ -4,16 +4,16 @@ import { SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { PersonCard } from "@/components/person-card";
-import { RosterSection } from "@/components/roster-section";
+import { RosterHeading, RosterSection } from "@/components/roster-section";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { StudentGroup } from "@/lib/students";
+import type { HomeroomGroup, StudentGroup } from "@/lib/students";
 import { searchStudents } from "@/lib/students/search";
 
-// The roster by grade level: a section per grade level in the school's own
-// order, then its students as cards. A card reads name over homeroom; the grade
-// level is the heading, so it isn't repeated on every row. FACTS ids stay
-// hidden.
+// The roster by grade level and then by homeroom: the grade level heads the
+// section, each of its homerooms heads a run of cards inside it, and a card is
+// just the child. Neither the grade level nor the homeroom is repeated on every
+// row — that is what the two headings are for. FACTS ids stay hidden.
 //
 // A client component for one reason: the search box narrows an already-loaded
 // roster, so typing costs no round trip. The narrowing itself is a rule, and
@@ -21,8 +21,8 @@ import { searchStudents } from "@/lib/students/search";
 export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
   const [query, setQuery] = useState("");
   const matching = useMemo(() => searchStudents(groups, query), [groups, query]);
-  const shown = matching.reduce((count, group) => count + group.students.length, 0);
-  const enrolled = groups.reduce((count, group) => count + group.students.length, 0);
+  const shown = matching.reduce((count, group) => count + size(group), 0);
+  const enrolled = groups.reduce((count, group) => count + size(group), 0);
 
   return (
     <div>
@@ -59,35 +59,47 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
       ) : (
         <div className="space-y-8">
           {matching.map((group) => (
-            <RosterSection
-              key={group.gradeLevel}
-              count={group.students.length}
-              heading={group.gradeLevel}
-            >
-              {group.students.map((entry) => (
-                <PersonCard
-                  key={entry.studentId}
-                  initials={entry.initials}
-                  // A child FACTS holds no person row for still belongs on the
-                  // roster; the gap is theirs to see, not ours to hide.
-                  missingName="No name in FACTS"
-                  name={entry.name}
-                  photoUrl={entry.photoUrl}
-                >
-                  {/* Same again for the ~62 students FACTS assigns no
-                      homeroom: named, not left blank. */}
-                  <p
-                    className="truncate text-sm text-muted-foreground"
-                    title={entry.homeroom ?? undefined}
+            <section key={group.gradeLevel}>
+              <RosterHeading count={size(group)} heading={group.gradeLevel} />
+
+              <div className="space-y-4">
+                {group.homerooms.map((homeroom) => (
+                  <RosterSection
+                    key={homeroom.homeroom}
+                    count={homeroom.students.length}
+                    heading={heading(homeroom)}
+                    level={3}
                   >
-                    {entry.homeroom ?? "No homeroom"}
-                  </p>
-                </PersonCard>
-              ))}
-            </RosterSection>
+                    {homeroom.students.map((entry) => (
+                      <PersonCard
+                        key={entry.studentId}
+                        initials={entry.initials}
+                        // A child FACTS holds no person row for still belongs on
+                        // the roster; the gap is theirs to see, not ours to hide.
+                        missingName="No name in FACTS"
+                        name={entry.name}
+                        photoUrl={entry.photoUrl}
+                      />
+                    ))}
+                  </RosterSection>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
     </div>
   );
 }
+
+// What a homeroom heading reads: FACTS' own code first, because that is what
+// the office types and what the grade level alone can't say, then the teacher,
+// because that is who everyone else knows the class by. A homeroom FACTS gave
+// no teacher — and the run of students it assigned no homeroom at all — is just
+// the code.
+const heading = (homeroom: HomeroomGroup) =>
+  homeroom.teacher ? `${homeroom.homeroom} · ${homeroom.teacher}` : homeroom.homeroom;
+
+// How many students a grade level holds, across its homerooms.
+const size = (group: StudentGroup) =>
+  group.homerooms.reduce((count, homeroom) => count + homeroom.students.length, 0);

@@ -1,15 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { groupByGradeLevel, NO_GRADE_LEVEL, type StudentEntry } from "@/lib/students";
+import {
+  groupByGradeLevel,
+  NO_GRADE_LEVEL,
+  NO_HOMEROOM,
+  type StudentEntry,
+} from "@/lib/students";
 
-// listStudents has already done the reading and the surname ordering; grouping
-// only decides the buckets, so these entries carry just what it looks at.
-const entry = (studentId: number, name: string, gradeLevel: string | null): StudentEntry => ({
+// listStudents has already done the reading and the ordering; grouping only
+// decides the buckets, so these entries carry just what it looks at.
+const entry = (
+  studentId: number,
+  name: string,
+  gradeLevel: string | null,
+  homeroom: { homeroom: string; teacher?: string } | null = null,
+): StudentEntry => ({
   studentId,
   name,
   initials: "",
   gradeLevel,
-  homeroom: null,
+  homeroom: homeroom?.homeroom ?? null,
+  homeroomTeacher: homeroom?.teacher ?? null,
   photoUrl: null,
 });
 
@@ -21,6 +32,11 @@ const schoolOrder = [
   { gradeLevel: "K", sortOrder: 4 },
   { gradeLevel: "01", sortOrder: 5 },
 ];
+
+// What a grade level holds, flattened, for the assertions that are about the
+// grade level rather than the homerooms inside it.
+const studentIds = (group: { homerooms: { students: StudentEntry[] }[] }) =>
+  group.homerooms.flatMap((homeroom) => homeroom.students.map((student) => student.studentId));
 
 describe("groupByGradeLevel", () => {
   it("reads grade levels in FACTS' sort order, never alphabetically", () => {
@@ -41,19 +57,73 @@ describe("groupByGradeLevel", () => {
     expect(groups.map((group) => group.gradeLevel)).toEqual(["JK", "TK", "01"]);
   });
 
-  it("keeps listStudents' order within a grade level", () => {
+  it("splits a grade level into its homerooms, keeping listStudents' order", () => {
+    const hrA = { homeroom: "01 HR-A", teacher: "Alexis Jue" };
+    const hrB = { homeroom: "01 HR-B", teacher: "Betty Mason" };
     const groups = groupByGradeLevel(
-      [entry(10, "Ada Lovelace", "K"), entry(11, "Grace Hopper", "PS"), entry(12, "Alan Turing", "K")],
+      [
+        entry(10, "Ada Lovelace", "01", hrA),
+        entry(11, "Alan Turing", "01", hrA),
+        entry(12, "Grace Hopper", "01", hrB),
+      ],
       schoolOrder,
     );
 
     expect(groups).toEqual([
-      { gradeLevel: "PS", students: [entry(11, "Grace Hopper", "PS")] },
       {
-        gradeLevel: "K",
-        students: [entry(10, "Ada Lovelace", "K"), entry(12, "Alan Turing", "K")],
+        gradeLevel: "01",
+        homerooms: [
+          {
+            homeroom: "01 HR-A",
+            teacher: "Alexis Jue",
+            students: [entry(10, "Ada Lovelace", "01", hrA), entry(11, "Alan Turing", "01", hrA)],
+          },
+          {
+            homeroom: "01 HR-B",
+            teacher: "Betty Mason",
+            students: [entry(12, "Grace Hopper", "01", hrB)],
+          },
+        ],
       },
     ]);
+  });
+
+  it("keeps a homeroom apart from the same-named one in another grade level", () => {
+    // FACTS' labels carry the grade, so this doesn't arise at this school — but
+    // the buckets are per grade level regardless, not global.
+    const hr = { homeroom: "HR-A", teacher: "Alexis Jue" };
+    const groups = groupByGradeLevel(
+      [entry(10, "Ada Lovelace", "K", hr), entry(11, "Grace Hopper", "01", hr)],
+      schoolOrder,
+    );
+
+    expect(groups.map((group) => studentIds(group))).toEqual([[10], [11]]);
+  });
+
+  it("names the run FACTS assigned no homeroom, and gives it no teacher", () => {
+    // Roughly 62 of 536, concentrated in preschool and kindergarten. Named
+    // rather than left loose under the grade level heading.
+    const groups = groupByGradeLevel(
+      [
+        entry(10, "Ada Lovelace", "PS", { homeroom: "*0PS - HR-A", teacher: "Rebecca Hoellwarth" }),
+        entry(11, "Grace Hopper", "PS"),
+      ],
+      schoolOrder,
+    );
+
+    expect(groups[0].homerooms.map(({ homeroom, teacher }) => ({ homeroom, teacher }))).toEqual([
+      { homeroom: "*0PS - HR-A", teacher: "Rebecca Hoellwarth" },
+      { homeroom: NO_HOMEROOM, teacher: null },
+    ]);
+  });
+
+  it("gives a homeroom FACTS staffed with nobody a heading anyway", () => {
+    const groups = groupByGradeLevel(
+      [entry(10, "Ada Lovelace", "01", { homeroom: "01 HR-A" })],
+      schoolOrder,
+    );
+
+    expect(groups[0].homerooms).toMatchObject([{ homeroom: "01 HR-A", teacher: null }]);
   });
 
   it("shows no group for a grade level nobody is in", () => {
@@ -71,13 +141,20 @@ describe("groupByGradeLevel", () => {
     );
 
     expect(groups.map((group) => group.gradeLevel)).toEqual(["K", NO_GRADE_LEVEL]);
-    expect(groups[1].students.map((student) => student.studentId)).toEqual([10, 12]);
+    expect(studentIds(groups[1])).toEqual([10, 12]);
   });
 
   it("files everyone under the named bucket when the snapshot has no grade levels", () => {
     const groups = groupByGradeLevel([entry(10, "Ada Lovelace", "K")], []);
 
-    expect(groups).toEqual([{ gradeLevel: NO_GRADE_LEVEL, students: [entry(10, "Ada Lovelace", "K")] }]);
+    expect(groups).toEqual([
+      {
+        gradeLevel: NO_GRADE_LEVEL,
+        homerooms: [
+          { homeroom: NO_HOMEROOM, teacher: null, students: [entry(10, "Ada Lovelace", "K")] },
+        ],
+      },
+    ]);
   });
 
   it("has no groups for an empty roster", () => {
