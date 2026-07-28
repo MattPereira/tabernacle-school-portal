@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { PersonAvatar } from "@/components/person-avatar";
+import { cn } from "@/components/ui/utils";
 
 // One person in a roster: face or initials, their name, and optionally one line
 // under it — a contact email on Staff. The line itself is the caller's, because
@@ -15,18 +16,21 @@ export function PersonCard({
   missingName,
   name,
   photoUrl,
+  topRight,
   children,
 }: {
   initials: string;
   missingName?: string;
   name: string;
   photoUrl: string | null;
+  topRight?: ReactNode;
   children?: ReactNode;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+    <li className="relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+      {topRight && <div className="absolute right-4 top-3 max-w-28 truncate text-sm text-muted-foreground">{topRight}</div>}
       <PersonAvatar initials={initials} photoUrl={photoUrl} />
-      <div className="min-w-0">
+      <div className={cn("min-w-0", topRight && "pr-28")}>
         <p className={`truncate font-medium ${name ? "" : "text-muted-foreground"}`}>
           {name || missingName}
         </p>

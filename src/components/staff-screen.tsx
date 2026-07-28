@@ -29,8 +29,8 @@ export function StaffScreen({ groups }: { groups: StaffGroup[] }) {
                   initials={entry.initials}
                   name={entry.name}
                   photoUrl={entry.photoUrl}
+                  topRight={entry.homeroom}
                 >
-                  {entry.homeroom && <p className="truncate text-sm text-muted-foreground">Homeroom · {entry.homeroom}</p>}
                   <PersonEmail email={entry.contactEmail} />
                 </PersonCard>
               ))}

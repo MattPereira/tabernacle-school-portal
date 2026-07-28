@@ -44,7 +44,7 @@ describe("listStaff", () => {
     ]);
   });
 
-  it("derives homerooms from currently enrolled students without changing the staff roster", async () => {
+  it("derives homerooms from currently enrolled students and orders each department by them", async () => {
     const teacher = staffMember(10, { firstName: "Jane", lastName: "Doe", department: "Faculty" });
     const noHomeroom = staffMember(11, { firstName: "Bob", lastName: "Beta", department: "Faculty" });
     const inactiveTeacher = staffMember(12, { firstName: "Cara", lastName: "Alpha", department: "Administration" });
@@ -79,7 +79,7 @@ describe("listStaff", () => {
       { staffId: 10, homeroom: "K Doe" },
     ]);
     expect(groupByDepartment(staff)).toMatchObject([
-      { department: "Faculty", staff: [{ staffId: 11 }, { staffId: 10 }] },
+      { department: "Faculty", staff: [{ staffId: 10 }, { staffId: 11 }] },
     ]);
   });
 

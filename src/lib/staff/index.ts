@@ -35,9 +35,9 @@ export type StaffEntry = {
   photoUrl: string | null;
 };
 
-// One department's colleagues, in the order Staff shows them. FACTS' department
-// text is free-form, so the buckets are whatever FACTS says plus one for the
-// rows it left blank.
+// One department's colleagues, ordered by homeroom for quick staff-room scans.
+// FACTS' department text is free-form, so the buckets are whatever FACTS says
+// plus one for the rows it left blank.
 export type StaffGroup = { department: string; staff: StaffEntry[] };
 
 // What a row with no department is filed under. Named rather than folded into
@@ -93,10 +93,10 @@ export async function listStaff(deps: StaffDeps): Promise<StaffEntry[]> {
   }));
 }
 
-// The roster split into its departments. Within a department the entries keep
-// listStaff's surname order; the departments themselves read alphabetically,
-// case-insensitively, with the blank bucket last — it's a hole in the data, not
-// a place people work.
+// The roster split into its departments. Within a department, homerooms read
+// alphabetically and unassigned colleagues trail them; the departments
+// themselves read alphabetically, case-insensitively, with the blank bucket
+// last — it's a hole in the data, not a place people work.
 export function groupByDepartment(staff: StaffEntry[]): StaffGroup[] {
   const groups = new Map<string, StaffEntry[]>();
 
@@ -108,10 +108,17 @@ export function groupByDepartment(staff: StaffEntry[]): StaffGroup[] {
   }
 
   return [...groups]
-    .map(([department, entries]) => ({ department, staff: entries }))
+    .map(([department, entries]) => ({ department, staff: entries.sort(byHomeroom) }))
     .sort((a, b) => {
       if (a.department === NO_DEPARTMENT) return 1;
       if (b.department === NO_DEPARTMENT) return -1;
       return a.department.localeCompare(b.department, undefined, { sensitivity: "base" });
     });
+}
+
+function byHomeroom(a: StaffEntry, b: StaffEntry) {
+  if (!a.homeroom && !b.homeroom) return 0;
+  if (!a.homeroom) return 1;
+  if (!b.homeroom) return -1;
+  return a.homeroom.localeCompare(b.homeroom, undefined, { sensitivity: "base" });
 }
