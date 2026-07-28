@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PersonAvatar } from "@/components/person-avatar";
 import { PersonEmail } from "@/components/person-card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/utils";
 import type { StaffGroup } from "@/lib/staff";
 
 // PROTOTYPE: Three variants of real Staff homerooms, switchable with ?variant=.
@@ -56,11 +57,11 @@ export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
 
 function VariantCard({ entry, homeroom, variant }: { entry: StaffGroup["staff"][number]; homeroom: string | null; variant: Variant }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+    <li className="relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+      {variant === "A" && homeroom && <p className="absolute right-4 top-3 max-w-28 truncate text-sm text-muted-foreground">{homeroom}</p>}
       <PersonAvatar initials={entry.initials} photoUrl={entry.photoUrl} />
-      <div className="min-w-0">
+      <div className={cn("min-w-0", variant === "A" && homeroom && "pr-28")}>
         <p className="truncate font-medium">{entry.name}</p>
-        {variant === "A" && homeroom && <p className="truncate text-sm text-muted-foreground">Homeroom · {homeroom}</p>}
         {variant === "B" && homeroom && <Badge variant="outline">{homeroom}</Badge>}
         {variant === "C" && homeroom && <p className="truncate text-sm font-medium">{homeroom}</p>}
         <PersonEmail email={entry.contactEmail} />
