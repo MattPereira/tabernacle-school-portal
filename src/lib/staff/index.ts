@@ -11,6 +11,19 @@ import { factsPictureUrl } from "@/lib/facts/pictures";
 
 export type StaffDeps = { db: PgDatabase<PgQueryResultHKT, typeof schema> };
 
+export type StaffDetail = {
+  // Internal only: route identity and list keys, never page text.
+  staffId: number;
+  name: string;
+  initials: string;
+  department: string | null;
+  contactEmail: string | null;
+  photoUrl: string | null;
+  // Every distinct current label attributed to this staff member. The list
+  // deliberately carries only one scan label; detail must not hide the rest.
+  homerooms: string[];
+};
+
 // One Staff entry, display-ready: the page arranges these, it doesn't decide
 // anything about them.
 export type StaffEntry = {
@@ -91,6 +104,49 @@ export async function listStaff(deps: StaffDeps): Promise<StaffEntry[]> {
     initials: initials(firstName, lastName),
     photoUrl: factsPictureUrl(pathToPicture),
   }));
+}
+
+// An active colleague's full Professional staff profile. The two reads keep
+// the profile row singular while retaining all of their homeroom labels.
+export async function getStaffDetail({ db }: StaffDeps, staffId: number): Promise<StaffDetail | null> {
+  const [staff] = await db
+    .select({
+      staffId: factsStaff.staffId,
+      firstName: factsStaff.firstName,
+      middleName: factsStaff.middleName,
+      lastName: factsStaff.lastName,
+      department: factsStaff.department,
+      personId: factsPerson.personId,
+      contactEmail: factsPerson.contactEmail,
+      pathToPicture: factsPerson.pathToPicture,
+    })
+    .from(factsStaff)
+    // A missing /People row leaves person-owned facts absent, not the staff
+    // member's detail page.
+    .leftJoin(factsPerson, eq(factsPerson.personId, factsStaff.staffId))
+    .where(and(eq(factsStaff.staffId, staffId), eq(factsStaff.inactive, false)));
+
+  if (!staff) return null;
+
+  const homeroomRows = await db
+    .select({ homeroom: factsStudent.homeroom })
+    .from(factsStudent)
+    .where(and(
+      eq(factsStudent.homeroomStaffId, staffId),
+      eq(factsStudent.inactive, false),
+      isNotNull(factsStudent.homeroom),
+    ));
+
+  return {
+    staffId: staff.staffId,
+    name: staff.personId ? [staff.firstName, staff.middleName, staff.lastName].filter(Boolean).join(" ") : "",
+    initials: initials(staff.firstName, staff.lastName),
+    department: staff.department,
+    contactEmail: staff.contactEmail,
+    photoUrl: factsPictureUrl(staff.pathToPicture),
+    homerooms: [...new Set(homeroomRows.map(({ homeroom }) => homeroom).filter((homeroom): homeroom is string => homeroom !== null))]
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+  };
 }
 
 // The roster split into its departments. Within a department, homerooms read
