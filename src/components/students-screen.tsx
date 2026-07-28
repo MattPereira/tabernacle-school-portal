@@ -1,13 +1,11 @@
 "use client";
 
-import { SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { PersonCard, PersonEmail } from "@/components/person-card";
+import { RosterFilterBar } from "@/components/roster-filter-bar";
 import { RosterHeading, RosterSection } from "@/components/roster-section";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { StudentGroup } from "@/lib/students";
 import { countStudents, gradeLevelsIn, selectGradeLevel } from "@/lib/students/grades";
 import { searchStudents } from "@/lib/students/search";
@@ -57,38 +55,15 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
           {narrowed && <span className="text-sm text-muted-foreground">{shown} shown</span>}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* One press, one grade — pressing the grade you are already on returns
-              you to all of them, so the row never needs a separate way out. The
-              chips carry no counts: they are a row of destinations, and the
-              heading each one lands on already says how many are there. */}
-          <div aria-label="Filter by grade level" className="flex flex-wrap gap-1.5" role="group">
-            <Chip label="All" onPress={() => setGradeLevel(null)} pressed={gradeLevel === null} />
-            {chips.map((chip) => (
-              <Chip
-                key={chip}
-                label={chip}
-                onPress={() => setGradeLevel(gradeLevel === chip ? null : chip)}
-                pressed={gradeLevel === chip}
-              />
-            ))}
-          </div>
-
-          <div className="relative w-full sm:ms-auto sm:w-64">
-            <SearchIcon
-              aria-hidden
-              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              aria-label="Search students by name"
-              className="ps-9"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name"
-              type="search"
-              value={query}
-            />
-          </div>
-        </div>
+        <RosterFilterBar
+          filterLabel="Filter by grade level"
+          onQueryChange={setQuery}
+          onSelectedChange={setGradeLevel}
+          options={chips}
+          query={query}
+          searchLabel="students"
+          selected={gradeLevel}
+        />
       </header>
 
       {enrolled === 0 ? (
@@ -135,35 +110,6 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
         </div>
       )}
     </div>
-  );
-}
-
-// One grade-level chip: the label, and nothing else.
-//
-// The min-width is what makes "K" and "01" the same size. A floor rather than a
-// fixed width, and set just past the widest of the short labels, so the row
-// stays as tight as a uniform row can be — and so the one label that isn't
-// short ("No grade level") can still take the room it needs instead of being
-// squeezed or dragging every other chip out to its own width.
-function Chip({
-  label,
-  onPress,
-  pressed,
-}: {
-  label: string;
-  onPress: () => void;
-  pressed: boolean;
-}) {
-  return (
-    <Button
-      aria-pressed={pressed}
-      className="min-w-11"
-      onClick={onPress}
-      size="sm"
-      variant={pressed ? "default" : "outline"}
-    >
-      {label}
-    </Button>
   );
 }
 
