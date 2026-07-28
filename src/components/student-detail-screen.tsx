@@ -13,7 +13,7 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex items-center gap-4">
             <PersonAvatar initials={student.initials} photoUrl={student.photoUrl} size="large" />
             <div className="min-w-0 space-y-1">
