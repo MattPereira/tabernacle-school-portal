@@ -66,7 +66,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent>{children}</CardContent></Card>;
 }
 
-function Fact({ icon: Icon, label, children }: { icon: typeof Mail; label: string; children: React.ReactNode }) {
+function Fact({ icon: Icon, label, children }: { icon: typeof CalendarDays; label: string; children: React.ReactNode }) {
   return <div className="flex gap-3"><Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div><dt className="text-sm text-muted-foreground">{label}</dt><dd className="text-sm font-medium">{children ?? "—"}</dd></div></div>;
 }
 
