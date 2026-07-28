@@ -37,15 +37,21 @@ export function PersonCard({
   children?: ReactNode;
 }) {
   return (
-    <li className="relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3" id={id}>
-      {href && <Link aria-label={linkLabel} className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" href={href} />}
-      {topRight && <div className="absolute right-4 top-3 z-10 max-w-28 truncate text-sm text-muted-foreground">{topRight}</div>}
-      <div className="relative z-10"><PersonAvatar initials={initials} photoUrl={photoUrl} /></div>
-      <div className={cn("relative z-10 min-w-0", topRight && "pr-28")}>
+    <li
+      className={cn(
+        "relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3",
+        href && "cursor-pointer transition-colors hover:bg-muted",
+      )}
+      id={id}
+    >
+      {href && <Link aria-label={linkLabel} className="absolute inset-0 z-10 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" href={href} />}
+      {topRight && <div className="absolute right-4 top-3 max-w-28 truncate text-sm text-muted-foreground">{topRight}</div>}
+      <PersonAvatar initials={initials} photoUrl={photoUrl} />
+      <div className={cn("min-w-0", topRight && "pr-28")}>
         <p className={`truncate font-medium ${name ? "" : "text-muted-foreground"}`}>
           {name || missingName}
         </p>
-        {children}
+        {children && <div className="relative z-20">{children}</div>}
       </div>
     </li>
   );
