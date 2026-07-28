@@ -9,7 +9,6 @@ const entry = (studentId: number, name: string): StudentEntry => ({
   initials: "",
   gradeLevel: null,
   homeroom: null,
-  homeroomTeacher: null,
   photoUrl: null,
   contactEmail: null,
 });
@@ -18,14 +17,14 @@ const roster: StudentGroup[] = [
   {
     gradeLevel: "K",
     homerooms: [
-      { homeroom: "*K- HR-A", teacher: "Sylvia Borde", students: [entry(10, "Ada Lovelace")] },
-      { homeroom: "*K- HR-B", teacher: "Cecilia Prior", students: [entry(11, "Alan Turing")] },
+      { homeroom: "*K- HR-A", students: [entry(10, "Ada Lovelace")] },
+      { homeroom: "*K- HR-B", students: [entry(11, "Alan Turing")] },
     ],
   },
   {
     gradeLevel: "01",
     homerooms: [
-      { homeroom: "01 HR-A", teacher: "Alexis Jue", students: [entry(12, "Grace Hopper")] },
+      { homeroom: "01 HR-A", students: [entry(12, "Grace Hopper")] },
     ],
   },
 ];
@@ -45,7 +44,7 @@ describe("searchStudents", () => {
       {
         gradeLevel: "01",
         homerooms: [
-          { homeroom: "01 HR-A", teacher: "Alexis Jue", students: [entry(12, "Grace Hopper")] },
+          { homeroom: "01 HR-A", students: [entry(12, "Grace Hopper")] },
         ],
       },
     ]);
@@ -56,7 +55,7 @@ describe("searchStudents", () => {
       {
         gradeLevel: "K",
         homerooms: [
-          { homeroom: "*K- HR-B", teacher: "Cecilia Prior", students: [entry(11, "Alan Turing")] },
+          { homeroom: "*K- HR-B", students: [entry(11, "Alan Turing")] },
         ],
       },
     ]);
@@ -67,7 +66,7 @@ describe("searchStudents", () => {
       {
         gradeLevel: "K",
         homerooms: [
-          { homeroom: "*K- HR-A", teacher: "Sylvia Borde", students: [entry(10, "Ada Lovelace")] },
+          { homeroom: "*K- HR-A", students: [entry(10, "Ada Lovelace")] },
         ],
       },
     ]);

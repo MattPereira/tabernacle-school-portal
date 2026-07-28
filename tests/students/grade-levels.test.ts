@@ -9,7 +9,6 @@ const entry = (studentId: number, name: string): StudentEntry => ({
   initials: "",
   gradeLevel: null,
   homeroom: null,
-  homeroomTeacher: null,
   photoUrl: null,
   contactEmail: null,
 });
@@ -17,10 +16,9 @@ const entry = (studentId: number, name: string): StudentEntry => ({
 const kindergarten: StudentGroup = {
   gradeLevel: "K",
   homerooms: [
-    { homeroom: "*K- HR-A", teacher: "Sylvia Borde", students: [entry(10, "Ada Lovelace")] },
+    { homeroom: "*K- HR-A", students: [entry(10, "Ada Lovelace")] },
     {
       homeroom: "*K- HR-B",
-      teacher: "Cecilia Prior",
       students: [entry(11, "Alan Turing"), entry(12, "Katherine Johnson")],
     },
   ],
@@ -28,7 +26,7 @@ const kindergarten: StudentGroup = {
 
 const first: StudentGroup = {
   gradeLevel: "01",
-  homerooms: [{ homeroom: "01 HR-A", teacher: "Alexis Jue", students: [entry(13, "Grace Hopper")] }],
+  homerooms: [{ homeroom: "01 HR-A", students: [entry(13, "Grace Hopper")] }],
 };
 
 const roster: StudentGroup[] = [kindergarten, first];

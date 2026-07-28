@@ -28,10 +28,7 @@ describe("listStudents", () => {
       facts: fakeFacts({
         students: [student(1206161, "07")],
         homerooms: [homeroom(1206161, { homeroom: "07 Rivera", room: "12", staffId: 500 })],
-        people: [
-          person(1206161, "Benjamin", "Olson", { pathToPicture: "1206161.jpg" }),
-          person(500, "Lisa", "Rivera"),
-        ],
+        people: [person(1206161, "Benjamin", "Olson", { pathToPicture: "1206161.jpg" })],
       }),
     });
 
@@ -42,43 +39,10 @@ describe("listStudents", () => {
         initials: "BO",
         gradeLevel: "07",
         homeroom: "07 Rivera",
-        homeroomTeacher: "Lisa Rivera",
         photoUrl: "https://tcs-ca.client.factsmgt.com/ftp/tcs-ca/pictures/1206161.jpg",
         contactEmail: null,
       },
     ]);
-  });
-
-  it("names the homeroom teacher even after FACTS drops them from the staff set", async () => {
-    // One of this school's 24 homerooms is held by a staff member FACTS no
-    // longer marks active. The class still meets and the heading still needs
-    // their name, so the read joins the person record, not the staff set.
-    await sync({
-      db,
-      facts: fakeFacts({
-        students: [student(1, "07")],
-        homerooms: [homeroom(1, { homeroom: "07 HR-B", staffId: 900 })],
-        people: [person(1, "Ann", "Alpha"), person(900, "Eric", "Utomo")],
-        // Deliberately not in `staff`: the teacher is absent from the active
-        // staff set entirely.
-        staff: [],
-      }),
-    });
-
-    expect(await listStudents({ db })).toMatchObject([{ homeroomTeacher: "Eric Utomo" }]);
-  });
-
-  it("has no homeroom teacher when FACTS staffed the homeroom with nobody", async () => {
-    await sync({
-      db,
-      facts: fakeFacts({
-        students: [student(1, "07")],
-        homerooms: [homeroom(1, { homeroom: "07 HR-B" })],
-        people: [person(1, "Ann", "Alpha")],
-      }),
-    });
-
-    expect(await listStudents({ db })).toMatchObject([{ homeroomTeacher: null }]);
   });
 
   it("omits students FACTS no longer lists as enrolled", async () => {
@@ -110,7 +74,6 @@ describe("listStudents", () => {
         initials: "",
         gradeLevel: "03",
         homeroom: "03 Chen",
-        homeroomTeacher: null,
         photoUrl: null,
         contactEmail: null,
       },

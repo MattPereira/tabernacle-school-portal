@@ -55,8 +55,26 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
               question. What the narrowing left is said beside it instead. */}
           <Badge variant="secondary">{enrolled}</Badge>
           {narrowed && <span className="text-sm text-muted-foreground">{shown} shown</span>}
+        </div>
 
-          <div className="relative ms-auto w-full sm:w-64">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* One press, one grade — pressing the grade you are already on returns
+              you to all of them, so the row never needs a separate way out. The
+              chips carry no counts: they are a row of destinations, and the
+              heading each one lands on already says how many are there. */}
+          <div aria-label="Filter by grade level" className="flex flex-wrap gap-1.5" role="group">
+            <Chip label="All" onPress={() => setGradeLevel(null)} pressed={gradeLevel === null} />
+            {chips.map((chip) => (
+              <Chip
+                key={chip}
+                label={chip}
+                onPress={() => setGradeLevel(gradeLevel === chip ? null : chip)}
+                pressed={gradeLevel === chip}
+              />
+            ))}
+          </div>
+
+          <div className="relative w-full sm:ms-auto sm:w-64">
             <SearchIcon
               aria-hidden
               className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -70,22 +88,6 @@ export function StudentsScreen({ groups }: { groups: StudentGroup[] }) {
               value={query}
             />
           </div>
-        </div>
-
-        {/* One press, one grade — pressing the grade you are already on returns
-            you to all of them, so the row never needs a separate way out. The
-            chips carry no counts: they are a row of destinations, and the
-            heading each one lands on already says how many are there. */}
-        <div aria-label="Filter by grade level" className="flex flex-wrap gap-1.5" role="group">
-          <Chip label="All" onPress={() => setGradeLevel(null)} pressed={gradeLevel === null} />
-          {chips.map((chip) => (
-            <Chip
-              key={chip}
-              label={chip}
-              onPress={() => setGradeLevel(gradeLevel === chip ? null : chip)}
-              pressed={gradeLevel === chip}
-            />
-          ))}
         </div>
       </header>
 
@@ -173,4 +175,3 @@ function nothing(query: string, gradeLevel: string | null) {
 
   return `No students in ${gradeLevel}.`;
 }
-

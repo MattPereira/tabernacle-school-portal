@@ -2,7 +2,7 @@
 // read from the FACTS snapshot rather than from FACTS itself, so browsing never
 // waits on the rate-limited API. FACTS stays authoritative; nothing here writes.
 import { asc, eq, sql } from "drizzle-orm";
-import { alias, type PgDatabase, type PgQueryResultHKT } from "drizzle-orm/pg-core";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { factsGradeLevel, factsPerson, factsStudent } from "@/lib/db/schema";
 import type * as schema from "@/lib/db/schema";
@@ -30,11 +30,6 @@ export type StudentEntry = {
   // adjacent: listStudents sorts on it ahead of the name. Null for the students
   // FACTS has assigned no homeroom — a gap the page shows rather than hides.
   homeroom: string | null;
-  // Who runs that homeroom, "First Last", read from the person record rather
-  // than the staff set: FACTS has homerooms held by staff it no longer marks
-  // active, and their name is still the right one to print. Null when the
-  // homeroom has no staff id, or that id has no person row.
-  homeroomTeacher: string | null;
   // The FACTS-hosted photo, already derived and vetted here so the page only
   // has to render it. Null covers "no photo" and "not a usable filename"
   // alike — both show initials, and neither is the page's decision.
@@ -56,9 +51,6 @@ export type HomeroomGroup = {
   // it is the code the office types into FACTS, and for the handful of students
   // FACTS files in another grade's homeroom it is the only thing that says so.
   homeroom: string;
-  // The teacher's name, or null — a homeroom whose staff FACTS never filled in
-  // still gets its heading, just a shorter one.
-  teacher: string | null;
   students: StudentEntry[];
 };
 
@@ -79,10 +71,6 @@ export const NO_HOMEROOM = "No homeroom";
 // Currently enrolled students only: sync fetches the enrolled population and
 // flags whoever has left it, so an unflagged row is a child who is here now.
 export async function listStudents(deps: StudentDeps): Promise<StudentEntry[]> {
-  // The same person table twice: once for the child, once for whoever runs
-  // their homeroom.
-  const homeroomTeacher = alias(factsPerson, "homeroom_teacher");
-
   const rows = await deps.db
     .select({
       studentId: factsStudent.studentId,
@@ -92,17 +80,11 @@ export async function listStudents(deps: StudentDeps): Promise<StudentEntry[]> {
       lastName: factsPerson.lastName,
       pathToPicture: factsPerson.pathToPicture,
       contactEmail: factsPerson.contactEmail,
-      teacherFirstName: homeroomTeacher.firstName,
-      teacherLastName: homeroomTeacher.lastName,
     })
     .from(factsStudent)
     // Left join: FACTS has students with no /People row, and that data wart
     // must not hide a child — only their name and photo.
     .leftJoin(factsPerson, eq(factsPerson.personId, factsStudent.studentId))
-    // Joined to the person record and not the staff set on purpose: one of this
-    // school's homerooms is held by a staff member FACTS has since marked
-    // inactive, and the heading should still carry their name.
-    .leftJoin(homeroomTeacher, eq(homeroomTeacher.personId, factsStudent.homeroomStaffId))
     .where(eq(factsStudent.inactive, false))
     // A roster order: homeroom first, so a grade level reads as the classes it
     // is actually taught in rather than one long alphabet; then surname,
@@ -119,13 +101,10 @@ export async function listStudents(deps: StudentDeps): Promise<StudentEntry[]> {
     );
 
   return rows.map(
-    ({ firstName, lastName, pathToPicture, teacherFirstName, teacherLastName, ...entry }) => ({
+    ({ firstName, lastName, pathToPicture, ...entry }) => ({
       ...entry,
       name: [firstName, lastName].filter(Boolean).join(" "),
       initials: initials(firstName, lastName),
-      // Empty rather than null is what a join miss and a blank name both look
-      // like here, and neither is a teacher to print.
-      homeroomTeacher: [teacherFirstName, teacherLastName].filter(Boolean).join(" ") || null,
       photoUrl: factsPictureUrl(pathToPicture),
     }),
   );
@@ -192,15 +171,7 @@ function byHomeroom(students: StudentEntry[]): HomeroomGroup[] {
     const key = entry.homeroom ?? NO_HOMEROOM;
     const bucket = buckets.get(key);
     if (bucket) bucket.students.push(entry);
-    // The teacher comes from the first entry in the homeroom because it is a
-    // property of the homeroom, not of the child: every student in it carries
-    // the same name. The unassigned run is not a homeroom and so has none.
-    else
-      buckets.set(key, {
-        homeroom: key,
-        teacher: entry.homeroom ? entry.homeroomTeacher : null,
-        students: [entry],
-      });
+    else buckets.set(key, { homeroom: key, students: [entry] });
   }
 
   return [...buckets.values()];
