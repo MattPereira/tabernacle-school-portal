@@ -33,32 +33,22 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
             <Fact icon={CalendarDays} label="Birthdate">{student.birthdate && date(student.birthdate)}</Fact>
             <Fact icon={UserRound} label="Age">{student.age === null ? null : `${student.age} years old`}</Fact>
             <Fact icon={GraduationCap} label="Enrolled since">{student.enrolledSince && date(student.enrolledSince)}</Fact>
+            {student.homeroom && (
+              <Fact icon={MapPin} label="Homeroom">
+                <span>
+                  {student.homeroom.label}
+                  {student.homeroom.label && student.homeroom.room && <span className="text-muted-foreground"> · </span>}
+                  {student.homeroom.room && <span className="text-muted-foreground">{student.homeroom.room}</span>}
+                </span>
+                {student.homeroom.teacherName && (
+                  <Link className="block text-sm font-normal underline underline-offset-4" href={`/staff#staff-${student.homeroom.teacherId}`}>
+                    {student.homeroom.teacherName}
+                  </Link>
+                )}
+              </Fact>
+            )}
           </dl>
         </Section>
-
-        {student.homeroom && (
-          <div className="max-w-sm">
-            <Section title="Homeroom">
-              <div className="flex gap-3">
-                <MapPin className="mt-1 size-5 shrink-0 text-muted-foreground" />
-                <div className="space-y-1">
-                  {(student.homeroom.label || student.homeroom.room) && (
-                    <p className="font-medium">
-                      {student.homeroom.label}
-                      {student.homeroom.label && student.homeroom.room && <span className="font-normal text-muted-foreground"> · </span>}
-                      {student.homeroom.room && <span className="font-normal text-muted-foreground">{student.homeroom.room}</span>}
-                    </p>
-                  )}
-                  {student.homeroom.teacherName && (
-                    <Link className="text-sm underline underline-offset-4" href={`/staff#staff-${student.homeroom.teacherId}`}>
-                      {student.homeroom.teacherName}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </Section>
-          </div>
-        )}
       </div>
     </div>
   );
