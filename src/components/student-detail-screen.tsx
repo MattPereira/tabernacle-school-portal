@@ -20,7 +20,6 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
               <h1 className={`text-3xl font-medium ${student.name ? "" : "text-muted-foreground"}`}>
                 {student.name || "No name in FACTS"}
               </h1>
-              {student.gradeLevel && <p className="text-sm text-muted-foreground">{student.gradeLevel}</p>}
               {student.contactEmail && <p className="truncate text-sm text-muted-foreground">{student.contactEmail}</p>}
             </div>
             {student.status && <Badge className="absolute right-0 top-0" variant="secondary">{student.status}</Badge>}
