@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { listStaff } from "@/lib/staff";
+import { groupByDepartment, listStaff } from "@/lib/staff";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
-import { fakeFacts, person, staffMember } from "../support/facts";
+import { fakeFacts, homeroom, person, staffMember, student } from "../support/facts";
 import { resetSync } from "../sync/support";
 
 describe("listStaff", () => {
@@ -37,9 +37,49 @@ describe("listStaff", () => {
         name: "Jane Q Doe",
         initials: "JD",
         department: "Middle School",
+        homeroom: null,
         contactEmail: "jdoe@tbs.org",
         photoUrl: "https://tcs-ca.client.factsmgt.com/ftp/tcs-ca/pictures/1203006.jpg",
       },
+    ]);
+  });
+
+  it("derives homerooms from currently enrolled students without changing the staff roster", async () => {
+    const teacher = staffMember(10, { firstName: "Jane", lastName: "Doe", department: "Faculty" });
+    const noHomeroom = staffMember(11, { firstName: "Bob", lastName: "Beta", department: "Faculty" });
+    const inactiveTeacher = staffMember(12, { firstName: "Cara", lastName: "Alpha", department: "Administration" });
+
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [teacher, noHomeroom, inactiveTeacher],
+        students: [student(100), student(101), student(102)],
+        homerooms: [
+          homeroom(100, { homeroom: "K Doe", staffId: 10 }),
+          homeroom(101, { homeroom: "02 Beta", staffId: 11 }),
+          homeroom(102, { homeroom: "03 Alpha", staffId: 12 }),
+        ],
+      }),
+    });
+    await sync({
+      db,
+      facts: fakeFacts({
+        staff: [teacher, noHomeroom],
+        students: [student(100), student(102)],
+        homerooms: [
+          homeroom(100, { homeroom: "K Doe", staffId: 10 }),
+          homeroom(102, { homeroom: "03 Alpha", staffId: 12 }),
+        ],
+      }),
+    });
+
+    const staff = await listStaff({ db });
+    expect(staff).toMatchObject([
+      { staffId: 11, homeroom: null },
+      { staffId: 10, homeroom: "K Doe" },
+    ]);
+    expect(groupByDepartment(staff)).toMatchObject([
+      { department: "Faculty", staff: [{ staffId: 11 }, { staffId: 10 }] },
     ]);
   });
 
@@ -109,7 +149,7 @@ describe("listStaff", () => {
     await sync({ db, facts: fakeFacts({ staff: [staffMember(10, { firstName: "Jane", lastName: "Doe" })], people: [] }) });
 
     expect(await listStaff({ db })).toEqual([
-      { staffId: 10, name: "Jane Doe", initials: "JD", department: null, contactEmail: null, photoUrl: null },
+      { staffId: 10, name: "Jane Doe", initials: "JD", department: null, homeroom: null, contactEmail: null, photoUrl: null },
     ]);
   });
 
@@ -154,7 +194,7 @@ describe("listStaff", () => {
     await sync({ db, facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "", "", { contactEmail: "x@tbs.org" })] }) });
 
     expect(await listStaff({ db })).toEqual([
-      { staffId: 10, name: "", initials: "", department: null, contactEmail: "x@tbs.org", photoUrl: null },
+      { staffId: 10, name: "", initials: "", department: null, homeroom: null, contactEmail: "x@tbs.org", photoUrl: null },
     ]);
   });
 

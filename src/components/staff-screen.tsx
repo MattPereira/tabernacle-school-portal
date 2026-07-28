@@ -30,6 +30,7 @@ export function StaffScreen({ groups }: { groups: StaffGroup[] }) {
                   name={entry.name}
                   photoUrl={entry.photoUrl}
                 >
+                  {entry.homeroom && <p className="truncate text-sm text-muted-foreground">Homeroom · {entry.homeroom}</p>}
                   <PersonEmail email={entry.contactEmail} />
                 </PersonCard>
               ))}
