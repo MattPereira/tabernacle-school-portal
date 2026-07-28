@@ -35,3 +35,22 @@ export function PersonCard({
     </li>
   );
 }
+
+// The line under a name on both rosters: a mailto to the address FACTS holds,
+// truncated to the card and carrying the whole thing in its title. Shared so
+// that a colleague's contact line and a student's stay the same line — they are
+// the same thing, and only the person differs. A card whose person has no
+// address renders it not at all rather than leaving a blank row.
+export function PersonEmail({ email }: { email: string | null }) {
+  if (!email) return null;
+
+  return (
+    <a
+      className="block truncate text-sm text-muted-foreground hover:text-foreground hover:underline"
+      href={`mailto:${encodeURI(email)}`}
+      title={email}
+    >
+      {email}
+    </a>
+  );
+}

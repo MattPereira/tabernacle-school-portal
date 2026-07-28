@@ -1,4 +1,4 @@
-import { PersonCard } from "@/components/person-card";
+import { PersonCard, PersonEmail } from "@/components/person-card";
 import { RosterSection } from "@/components/roster-section";
 import { Badge } from "@/components/ui/badge";
 import type { StaffGroup } from "@/lib/staff";
@@ -30,15 +30,7 @@ export function StaffScreen({ groups }: { groups: StaffGroup[] }) {
                   name={entry.name}
                   photoUrl={entry.photoUrl}
                 >
-                  {entry.contactEmail && (
-                    <a
-                      className="block truncate text-sm text-muted-foreground hover:text-foreground hover:underline"
-                      href={`mailto:${encodeURI(entry.contactEmail)}`}
-                      title={entry.contactEmail}
-                    >
-                      {entry.contactEmail}
-                    </a>
-                  )}
+                  <PersonEmail email={entry.contactEmail} />
                 </PersonCard>
               ))}
             </RosterSection>

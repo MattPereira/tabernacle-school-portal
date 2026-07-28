@@ -22,6 +22,7 @@ const entry = (
   homeroom: homeroom?.homeroom ?? null,
   homeroomTeacher: homeroom?.teacher ?? null,
   photoUrl: null,
+  contactEmail: null,
 });
 
 // The school's own order, as FACTS sorts it: PS, JK, TK, K, then 01 up.

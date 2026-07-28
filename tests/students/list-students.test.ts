@@ -44,6 +44,7 @@ describe("listStudents", () => {
         homeroom: "07 Rivera",
         homeroomTeacher: "Lisa Rivera",
         photoUrl: "https://tcs-ca.client.factsmgt.com/ftp/tcs-ca/pictures/1206161.jpg",
+        contactEmail: null,
       },
     ]);
   });
@@ -111,7 +112,28 @@ describe("listStudents", () => {
         homeroom: "03 Chen",
         homeroomTeacher: null,
         photoUrl: null,
+        contactEmail: null,
       },
+    ]);
+  });
+
+  it("carries the contact email FACTS holds, and nothing where it holds none", async () => {
+    // The school issues its @tbs.org addresses from 2nd grade up, so most of
+    // the lower school has none — an absent address, not a missing one.
+    await sync({
+      db,
+      facts: fakeFacts({
+        students: [student(10, "05"), student(11, "PS")],
+        people: [
+          person(10, "Ada", "Alpha", { contactEmail: "aalpha@tbs.org" }),
+          person(11, "Bo", "Beta"),
+        ],
+      }),
+    });
+
+    expect(await listStudents({ db })).toMatchObject([
+      { contactEmail: "aalpha@tbs.org" },
+      { contactEmail: null },
     ]);
   });
 

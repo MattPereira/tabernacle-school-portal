@@ -39,6 +39,11 @@ export type StudentEntry = {
   // has to render it. Null covers "no photo" and "not a usable filename"
   // alike — both show initials, and neither is the page's decision.
   photoUrl: string | null;
+  // FACTS' contact email, verbatim, from the same person record the name comes
+  // from. Null for most of the lower school and that is not a data gap: the
+  // school issues its @tbs.org addresses from 2nd grade up, so PS through 1st
+  // simply have none. A card with nothing to show says nothing.
+  contactEmail: string | null;
 };
 
 // One of the school's grade levels and where the school puts it in the order.
@@ -86,6 +91,7 @@ export async function listStudents(deps: StudentDeps): Promise<StudentEntry[]> {
       firstName: factsPerson.firstName,
       lastName: factsPerson.lastName,
       pathToPicture: factsPerson.pathToPicture,
+      contactEmail: factsPerson.contactEmail,
       teacherFirstName: homeroomTeacher.firstName,
       teacherLastName: homeroomTeacher.lastName,
     })

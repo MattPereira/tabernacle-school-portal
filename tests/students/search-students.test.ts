@@ -11,6 +11,7 @@ const entry = (studentId: number, name: string): StudentEntry => ({
   homeroom: null,
   homeroomTeacher: null,
   photoUrl: null,
+  contactEmail: null,
 });
 
 const roster: StudentGroup[] = [
