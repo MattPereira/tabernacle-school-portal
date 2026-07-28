@@ -12,6 +12,7 @@ src/                      everything the running app imports at runtime
 │   ├── db/                   schema/ (auth.ts + facts.ts + portal.ts) + client.ts   [wiring]
 │   ├── auth/                 better-auth instance + getViewer()              [wiring]
 │   ├── facts/                rate-limited read-only FACTS API client          [wiring]
+│   │                         + normalize.ts: the approved-field projection [rule module]
 │   ├── sync/                 read-only FACTS → DB sync + status reads    [rule module]
 │   ├── identity/             resolveAccess(email, deps): FACTS-derived gate [rule module]
 │   └── staff/                listStaff(deps): the active Staff entries    [rule module]
@@ -29,7 +30,7 @@ tests/                    Vitest suites — not runtime-imported, so outside src
 ├── identity/                one file per behavior at the resolveAccess seam
 ├── sync/                    one file per behavior at the sync(deps) seam
 ├── staff/                   the listStaff(deps) seam
-├── facts/                   FACTS client normalization, driven by a fake fetch
+├── facts/                   the approved-field projection in lib/facts/normalize.ts
 └── support/                 db.ts — PGlite + migrations; facts.ts — the fake FACTS client
 
 reference/                external-system REFERENCE material (read while building; not imported)

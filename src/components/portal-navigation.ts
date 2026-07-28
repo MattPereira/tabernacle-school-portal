@@ -12,3 +12,8 @@ export const portalNavigation = (): PortalNavigationItem[] => [
   { href: "/", label: "Home", icon: HomeIcon },
   { href: "/staff", label: "Staff", icon: UsersIcon },
 ];
+
+// What the portal header calls where you are. Derived from the navigation so a
+// new item can't ship with a sidebar label and a nameless header.
+export const portalLocation = (pathname: string): string =>
+  portalNavigation().find((item) => item.href === pathname)?.label ?? "Portal";

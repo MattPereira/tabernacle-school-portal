@@ -76,6 +76,18 @@ describe("sync flags, never revokes", () => {
     expect(returned.inactive).toBe(false);
   });
 
+  it("un-flags staff who return to FACTS, with their current profile", async () => {
+    const returning = staffMember(3, { firstName: "Cy", lastName: "Gamma", department: "Office" });
+    const staffed = fakeFacts({ staff: [returning], people: [person(3, "Cy", "Gamma")] });
+    await sync({ db, facts: staffed });
+    await sync({ db, facts: fakeFacts({ staff: [], people: [] }) });
+
+    await sync({ db, facts: staffed });
+
+    const [returned] = await db.select().from(factsStaff).where(eq(factsStaff.staffId, 3));
+    expect(returned).toMatchObject({ inactive: false, lastName: "Gamma", department: "Office" });
+  });
+
   it("counts only newly flagged rows, not the already-flagged backlog", async () => {
     await sync({ db, facts: twoStudents });
     const dropOne = fakeFacts({

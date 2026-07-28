@@ -91,6 +91,16 @@ describe("listStaff", () => {
     ]);
   });
 
+  it("still lists a staff member FACTS gave no name at all", async () => {
+    // Nothing to render but the email. Dropping the row would hide a real
+    // FACTS data problem, which is the same call as the utility names above.
+    await sync({ db, facts: fakeFacts({ staff: [staffMember(10)], people: [person(10, "", "", "x@tbs.org")] }) });
+
+    expect(await listStaff({ db })).toEqual([
+      { staffId: 10, name: "", department: null, contactEmail: "x@tbs.org" },
+    ]);
+  });
+
   it("orders by last name, then first name, then staff id — ignoring case", async () => {
     await sync({
       db,

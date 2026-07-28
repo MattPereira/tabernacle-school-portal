@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { portalNavigation } from "@/components/portal-navigation";
+import { portalLocation, portalNavigation } from "@/components/portal-navigation";
 
 describe("portalNavigation", () => {
   it("links Home and Staff, in that order", () => {
@@ -9,5 +9,16 @@ describe("portalNavigation", () => {
       { href: "/", label: "Home" },
       { href: "/staff", label: "Staff" },
     ]);
+  });
+});
+
+describe("portalLocation", () => {
+  it("names the header after the navigation item you are on", () => {
+    expect(portalLocation("/")).toBe("Home");
+    expect(portalLocation("/staff")).toBe("Staff");
+  });
+
+  it("falls back to the portal itself off the navigation", () => {
+    expect(portalLocation("/somewhere-else")).toBe("Portal");
   });
 });

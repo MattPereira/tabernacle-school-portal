@@ -28,7 +28,7 @@ export function StaffScreen({ staff }: { staff: StaffEntry[] }) {
               {entry.contactEmail && (
                 <a
                   className="text-sm break-all text-muted-foreground hover:text-foreground hover:underline"
-                  href={`mailto:${entry.contactEmail}`}
+                  href={`mailto:${encodeURI(entry.contactEmail)}`}
                 >
                   {entry.contactEmail}
                 </a>

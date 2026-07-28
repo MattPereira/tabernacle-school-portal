@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { portalLocation } from "@/components/portal-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
@@ -11,10 +12,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import type { StaffViewer } from "@/lib/auth/viewer";
-
-const pageLocations: Record<string, string> = {
-  "/": "Home",
-};
 
 export function PortalShell({
   viewer,
@@ -28,7 +25,7 @@ export function PortalShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const location = pageLocations[pathname] ?? "Portal";
+  const location = portalLocation(pathname);
 
   return (
     <SidebarProvider defaultOpen={defaultSidebarOpen}>

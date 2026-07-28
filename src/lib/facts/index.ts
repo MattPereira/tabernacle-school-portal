@@ -1,8 +1,19 @@
 // The runtime FACTS API client. Read-only by construction: this module exposes
 // no way to write to FACTS, because the portal never does (ADR-0005).
 //
-// The Swagger contract lives in reference/facts/api-definitions.json — read it
-// there, don't re-derive it from this file (docs/conventions.md §5).
+// Wiring: auth headers, paging, and the rate-limit budget. What each response
+// projects down to lives in ./normalize, so it can be tested without a fetch.
+import {
+  type FactsPerson,
+  type FactsRow,
+  type FactsStaff,
+  type FactsStudent,
+  toActiveStaff,
+  toPeople,
+  toStudents,
+} from "./normalize";
+
+export type { FactsPerson, FactsStaff, FactsStudent } from "./normalize";
 
 const BASE_URL = "https://api.factsmgt.com";
 const MAX_PER_WINDOW = 100; // the API allows 100 requests...
@@ -10,34 +21,6 @@ const WINDOW_MS = 60_000; // ...per rolling 60s window
 const PAD_MS = 2_000; // safety pad so we clear the window edge
 const PAGE_SIZE = 1000;
 const ID_CHUNK = 200; // personIds per /People request, to keep URLs sane
-
-// What sync consumes. Normalized off the wire here so the rule module never
-// learns FACTS' JSON shape — it sees people, students and staff.
-export type FactsPerson = {
-  personId: number;
-  firstName: string | null;
-  lastName: string | null;
-  // Contact email. FACTS owns it; staff access derives from an exact match.
-  contactEmail: string | null;
-};
-
-export type FactsStudent = {
-  studentId: number;
-  gradeLevel: string | null;
-  status: string | null;
-};
-
-// The professional staff profile, as FACTS' staff endpoint owns it. Only the
-// approved fields cross this interface — everything else FACTS sends (spouse,
-// phones, HR dates, demographics, …) stops here (CONTEXT.md).
-export type FactsStaff = {
-  staffId: number;
-  firstName: string | null;
-  middleName: string | null;
-  lastName: string | null;
-  // FACTS' own department text, trimmed. Blank means "no department".
-  department: string | null;
-};
 
 // The seam sync is written against. Three reads, no join — composing them is a
 // rule, so it lives in lib/sync where it can be tested, not in this wiring.
@@ -63,9 +46,6 @@ export type FactsConfig = {
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-// FACTS pads free-text fields and sends blanks for "not set" — both mean absent.
-const text = (value: string | null | undefined): string | null => value?.trim() || null;
 
 export function createFactsClient(config: FactsConfig): FactsClient {
   const {
@@ -149,27 +129,11 @@ export function createFactsClient(config: FactsConfig): FactsClient {
 
   return {
     async fetchEnrolledStudents() {
-      const rows = await getAll("/Students", { Filters: "school.status==Enrolled" });
-      return rows.map((row) => ({
-        studentId: Number(row.studentId),
-        gradeLevel: row.school?.gradeLevel ?? null,
-        status: row.school?.status ?? null,
-      }));
+      return toStudents(await getAll("/Students", { Filters: "school.status==Enrolled" }));
     },
 
     async fetchActiveStaff() {
-      const rows = await getAll("/people/Staff");
-      // The endpoint returns former staff too; `active` is the live flag. This
-      // is a *staff* flag, not FACTS' junk `administrator` role signal, and it
-      // is the only one that decides inclusion — `staffDirectoryBlock` is
-      // FACTS' own directory setting and means nothing to the portal.
-      return rows.filter((row) => row.active).map((row) => ({
-        staffId: Number(row.staffId),
-        firstName: text(row.firstName),
-        middleName: text(row.middleName),
-        lastName: text(row.lastName),
-        department: text(row.department),
-      }));
+      return toActiveStaff(await getAll("/people/Staff"));
     },
 
     async fetchPeople(personIds) {
@@ -180,29 +144,10 @@ export function createFactsClient(config: FactsConfig): FactsClient {
         const chunk = ids.slice(i, i + ID_CHUNK);
         rows.push(...(await getAll("/People", { Filters: `personId==${chunk.join("|")}` })));
       }
-      return rows.map((row) => ({
-        personId: Number(row.personId),
-        firstName: row.firstName ?? null,
-        lastName: row.lastName ?? null,
-        contactEmail: row.email || null,
-      }));
+      return toPeople(rows);
     },
   };
 }
-
-// Only the fields we actually read; FACTS returns far more.
-type FactsRow = {
-  personId?: number;
-  studentId?: number;
-  staffId?: number;
-  firstName?: string | null;
-  middleName?: string | null;
-  lastName?: string | null;
-  department?: string | null;
-  email?: string | null;
-  active?: boolean;
-  school?: { gradeLevel?: string | null; status?: string | null };
-};
 
 type FactsPage = {
   results?: FactsRow[];
