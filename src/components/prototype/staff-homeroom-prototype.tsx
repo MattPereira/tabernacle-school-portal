@@ -43,7 +43,7 @@ export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
           <section key={group.department}>
             <h2 className="mb-3 border-b pb-2 text-lg font-semibold">{group.department}</h2>
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {group.staff.map((entry) => {
+              {[...group.staff].sort(byHomeroom).map((entry) => {
                 return <VariantCard key={entry.staffId} entry={entry} homeroom={entry.homeroom} variant={current} />;
               })}
             </ul>
@@ -53,6 +53,15 @@ export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
       {process.env.NODE_ENV !== "production" && <PrototypeSwitcher current={current} select={select} />}
     </>
   );
+}
+
+// PROTOTYPE ONLY: lets the review assess whether homeroom-first scanning is
+// preferable to Staff's established surname order. Unassigned staff stay last.
+function byHomeroom(a: StaffGroup["staff"][number], b: StaffGroup["staff"][number]) {
+  if (!a.homeroom && !b.homeroom) return 0;
+  if (!a.homeroom) return 1;
+  if (!b.homeroom) return -1;
+  return a.homeroom.localeCompare(b.homeroom, undefined, { sensitivity: "base" });
 }
 
 function VariantCard({ entry, homeroom, variant }: { entry: StaffGroup["staff"][number]; homeroom: string | null; variant: Variant }) {
