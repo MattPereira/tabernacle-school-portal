@@ -84,6 +84,8 @@ describe("sync records every run", () => {
       async fetchEnrolledStudents() { entered(); await finish; return []; },
       async fetchActiveStaff() { return []; },
       async fetchPeople() { return []; },
+      async fetchHomerooms() { return []; },
+      async fetchGradeLevels() { return []; },
     };
 
     const first = sync({ db, facts });

@@ -1,9 +1,9 @@
 import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
-import { factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
+import { factsGradeLevel, factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
 import type * as schema from "@/lib/db/schema";
-import type { FactsClient } from "@/lib/facts";
+import type { FactsClient, FactsHomeroom, FactsStudent } from "@/lib/facts";
 
 export type SyncDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -38,8 +38,21 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
     }).where(eq(syncRun.id, runId));
 
   try {
-    const [students, staff] = await Promise.all([facts.fetchEnrolledStudents(), facts.fetchActiveStaff()]);
-    const people = await facts.fetchPeople([...students.map((row) => row.studentId), ...staff.map((row) => row.staffId)]);
+    const [students, staff, homerooms, gradeLevels] = await Promise.all([
+      facts.fetchEnrolledStudents(),
+      facts.fetchActiveStaff(),
+      facts.fetchHomerooms(),
+      facts.fetchGradeLevels(),
+    ]);
+    // Homeroom teachers join the people batch: one of them is inactive in FACTS
+    // and so absent from the staff fetch, and a homeroom must not read as
+    // unstaffed just because its teacher left the active set (#54).
+    const people = await facts.fetchPeople([
+      ...students.map((row) => row.studentId),
+      ...staff.map((row) => row.staffId),
+      ...homerooms.map((row) => row.staffId).filter((id): id is number => id !== null),
+    ]);
+    const enrolled = withHomerooms(students, homerooms);
     const incoming = { people: people.length, students: students.length, staff: staff.length };
     const flagged = await db.transaction(async (tx) => {
       const seenAt = now();
@@ -49,13 +62,19 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
         set: {
           firstName: sql`excluded.first_name`, lastName: sql`excluded.last_name`,
           contactEmail: sql`excluded.contact_email`, pathToPicture: sql`excluded.path_to_picture`,
+          birthdate: sql`excluded.birthdate`,
           inactive: false, lastSeenAt: seenAt,
         },
       });
       count += await flagMissing(tx, factsPerson, factsPerson.personId, people.map((row) => row.personId));
-      if (students.length) await tx.insert(factsStudent).values(students.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
+      if (enrolled.length) await tx.insert(factsStudent).values(enrolled.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
         target: factsStudent.studentId,
-        set: { gradeLevel: sql`excluded.grade_level`, status: sql`excluded.status`, inactive: false, lastSeenAt: seenAt },
+        set: {
+          gradeLevel: sql`excluded.grade_level`, status: sql`excluded.status`,
+          enrolledSince: sql`excluded.enrolled_since`, homeroom: sql`excluded.homeroom`,
+          room: sql`excluded.room`, homeroomStaffId: sql`excluded.homeroom_staff_id`,
+          inactive: false, lastSeenAt: seenAt,
+        },
       });
       count += await flagMissing(tx, factsStudent, factsStudent.studentId, students.map((row) => row.studentId));
       if (staff.length) await tx.insert(factsStaff).values(staff.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
@@ -67,6 +86,11 @@ export async function sync(deps: SyncDeps): Promise<SyncResult> {
         },
       });
       count += await flagMissing(tx, factsStaff, factsStaff.staffId, staff.map((row) => row.staffId));
+      if (gradeLevels.length) await tx.insert(factsGradeLevel).values(gradeLevels.map((row) => ({ ...row, lastSeenAt: seenAt }))).onConflictDoUpdate({
+        target: factsGradeLevel.gradeLevel,
+        set: { sortOrder: sql`excluded.sort_order`, inactive: false, lastSeenAt: seenAt },
+      });
+      count += await flagMissing(tx, factsGradeLevel, factsGradeLevel.gradeLevel, gradeLevels.map((row) => row.gradeLevel));
       return count;
     });
     const counts = { ...incoming, flagged };
@@ -91,11 +115,27 @@ export async function latestSyncRun(db: SyncDb) {
   return run ?? null;
 }
 
+// The enrolled roster with each student's homeroom folded in. The homeroom
+// endpoint can't be filtered, so a row for someone outside the roster fetch is
+// dropped rather than allowed to invent a student.
+function withHomerooms(students: FactsStudent[], homerooms: FactsHomeroom[]) {
+  const byStudent = new Map(homerooms.map((row) => [row.studentId, row]));
+  return students.map((row) => {
+    const assigned = byStudent.get(row.studentId);
+    return {
+      ...row,
+      homeroom: assigned?.homeroom ?? null,
+      room: assigned?.room ?? null,
+      homeroomStaffId: assigned?.staffId ?? null,
+    };
+  });
+}
+
 async function flagMissing(
   tx: SyncDb,
-  table: typeof factsPerson | typeof factsStudent | typeof factsStaff,
+  table: typeof factsPerson | typeof factsStudent | typeof factsStaff | typeof factsGradeLevel,
   idColumn: Parameters<typeof notInArray>[0],
-  presentIds: number[],
+  presentIds: (number | string)[],
 ): Promise<number> {
   const active = eq(table.inactive, false);
   const flagged = await tx.update(table).set({ inactive: true }).where(

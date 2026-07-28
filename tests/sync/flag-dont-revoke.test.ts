@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
+import { factsGradeLevel, factsPerson, factsStaff, factsStudent } from "@/lib/db/schema";
 import { resolveAccess } from "@/lib/identity";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
-import { fakeFacts, person, staffMember, student } from "../support/facts";
+import { fakeFacts, gradeLevel, person, staffMember, student } from "../support/facts";
 import { resetSync } from "./support";
 
 describe("sync flags, never revokes", () => {
@@ -99,6 +99,18 @@ describe("sync flags, never revokes", () => {
     expect(await sync({ db, facts: dropOne })).toMatchObject({ counts: { flagged: 2 } });
     // Same shape again: nothing new left, so nothing new to report.
     expect(await sync({ db, facts: dropOne })).toMatchObject({ counts: { flagged: 0 } });
+  });
+
+  it("flags a grade level FACTS dropped, on the same rule as its siblings", async () => {
+    await sync({ db, facts: fakeFacts({ gradeLevels: [gradeLevel("K", 4), gradeLevel("PS", 1)], people: [] }) });
+
+    const result = await sync({ db, facts: fakeFacts({ gradeLevels: [gradeLevel("K", 4)], people: [] }) });
+
+    expect(result).toMatchObject({ counts: { flagged: 1 } });
+    const [dropped] = await db.select().from(factsGradeLevel).where(eq(factsGradeLevel.gradeLevel, "PS"));
+    expect(dropped.inactive).toBe(true);
+    const [kept] = await db.select().from(factsGradeLevel).where(eq(factsGradeLevel.gradeLevel, "K"));
+    expect(kept.inactive).toBe(false);
   });
 
   it("flags departed staff too", async () => {

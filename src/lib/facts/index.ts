@@ -4,16 +4,26 @@
 // Wiring: auth headers, paging, and the rate-limit budget. What each response
 // projects down to lives in ./normalize, so it can be tested without a fetch.
 import {
+  type FactsGradeLevel,
+  type FactsHomeroom,
   type FactsPerson,
   type FactsRow,
   type FactsStaff,
   type FactsStudent,
   toActiveStaff,
+  toGradeLevels,
+  toHomerooms,
   toPeople,
   toStudents,
 } from "./normalize";
 
-export type { FactsPerson, FactsStaff, FactsStudent } from "./normalize";
+export type {
+  FactsGradeLevel,
+  FactsHomeroom,
+  FactsPerson,
+  FactsStaff,
+  FactsStudent,
+} from "./normalize";
 
 const BASE_URL = "https://api.factsmgt.com";
 const MAX_PER_WINDOW = 100; // the API allows 100 requests...
@@ -22,15 +32,22 @@ const PAD_MS = 2_000; // safety pad so we clear the window edge
 const PAGE_SIZE = 1000;
 const ID_CHUNK = 200; // personIds per /People request, to keep URLs sane
 
-// The seam sync is written against. Three reads, no join — composing them is a
+// The seam sync is written against. Five reads, no join — composing them is a
 // rule, so it lives in lib/sync where it can be tested, not in this wiring.
 export type FactsClient = {
   // Currently-enrolled students only; FACTS filters server-side.
   fetchEnrolledStudents(): Promise<FactsStudent[]>;
   // Currently-active staff only.
   fetchActiveStaff(): Promise<FactsStaff[]>;
-  // Names and contact emails for the given personIds, chunked internally.
+  // Names, contact emails and birthdates for the given personIds, chunked
+  // internally.
   fetchPeople(personIds: number[]): Promise<FactsPerson[]>;
+  // Every homeroom assignment the school has. Unfiltered and unfilterable by
+  // year, but verified to contain only currently enrolled students — it is a
+  // live current-year view, which is why no school year is stored (#54).
+  fetchHomerooms(): Promise<FactsHomeroom[]>;
+  // The school's grade levels, in the school's own order.
+  fetchGradeLevels(): Promise<FactsGradeLevel[]>;
 };
 
 export type FactsConfig = {
@@ -134,6 +151,14 @@ export function createFactsClient(config: FactsConfig): FactsClient {
 
     async fetchActiveStaff() {
       return toActiveStaff(await getAll("/people/Staff"));
+    },
+
+    async fetchHomerooms() {
+      return toHomerooms(await getAll("/People/StudentsHomeroom"));
+    },
+
+    async fetchGradeLevels() {
+      return toGradeLevels(await getAll("/Academics/GradeLevels"));
     },
 
     async fetchPeople(personIds) {

@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 // why the size lives in two places rather than one constant.
 const SIZE = 56;
 
-// A colleague's face, or their initials. Three things land in initials and all
-// of them look the same to the reader: FACTS has no photo, the filename wasn't
-// one we'd derive a URL from, and the image failed in the browser (#52).
+// A face, or its initials — a colleague's on Staff, a child's on Students.
+// Three things land in initials and all of them look the same to the reader:
+// FACTS has no photo, the filename wasn't one we'd derive a URL from, and the
+// image failed in the browser (#52).
 //
 // The initials sit underneath rather than beside: they're what shows while the
 // photo loads, and what's left if it never does.
@@ -21,7 +22,7 @@ const SIZE = 56;
 // A rounded square, a radius step tighter than the card it sits in. The
 // primitive defaults to a circle, so every layer — the box, its border ring,
 // the fallback, and the photo — has to be squared off.
-export function StaffAvatar({ initials, photoUrl }: { initials: string; photoUrl: string | null }) {
+export function PersonAvatar({ initials, photoUrl }: { initials: string; photoUrl: string | null }) {
   const [failed, setFailed] = useState(false);
 
   return (

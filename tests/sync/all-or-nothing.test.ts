@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
+import { factsGradeLevel, factsPerson, factsStaff, factsStudent, syncRun } from "@/lib/db/schema";
 import { sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
-import { fakeFacts, person, staffMember, student } from "../support/facts";
+import { fakeFacts, gradeLevel, person, staffMember, student } from "../support/facts";
 import { resetSync } from "./support";
 
 describe("sync applies all-or-nothing", () => {
@@ -57,8 +57,8 @@ describe("sync applies all-or-nothing", () => {
   });
 
   it("keeps the previous staff profiles when the staff write is what fails", async () => {
-    // Staff is applied last, so a trip there is the case where people and
-    // students have already been written inside the transaction.
+    // Staff is applied after people and students, so a trip there is the case
+    // where earlier writes have already landed inside the transaction.
     await sync({
       db,
       facts: fakeFacts({
@@ -88,6 +88,43 @@ describe("sync applies all-or-nothing", () => {
     expect(await db.select().from(factsPerson)).toEqual(before.people);
     expect(await db.select().from(factsStudent)).toEqual(before.students);
     expect(await db.select().from(factsStaff)).toEqual(before.staff);
+  });
+
+  it("rolls the whole snapshot back when the grade-level write is what fails", async () => {
+    // The newest table joins the same transaction as the rest: it is written
+    // last, so a trip here has to undo everything before it.
+    await sync({
+      db,
+      facts: fakeFacts({
+        students: [student(1, "3")],
+        staff: [staffMember(2, { firstName: "Bob", lastName: "Beta" })],
+        people: [person(1, "Ann", "Alpha"), person(2, "Bob", "Beta")],
+        gradeLevels: [gradeLevel("03", 7)],
+      }),
+    });
+
+    const before = {
+      people: await db.select().from(factsPerson),
+      students: await db.select().from(factsStudent),
+      staff: await db.select().from(factsStaff),
+      gradeLevels: await db.select().from(factsGradeLevel),
+    };
+
+    const result = await sync({
+      db,
+      facts: fakeFacts({
+        students: [student(1, "4")],
+        staff: [staffMember(2, { firstName: "CHANGED", lastName: "CHANGED" })],
+        people: [person(1, "CHANGED", "CHANGED"), person(2, "CHANGED", "CHANGED")],
+        gradeLevels: [gradeLevel("03", 8), gradeLevel("03", 8)],
+      }),
+    });
+
+    expect(result.outcome).toBe("failed");
+    expect(await db.select().from(factsPerson)).toEqual(before.people);
+    expect(await db.select().from(factsStudent)).toEqual(before.students);
+    expect(await db.select().from(factsStaff)).toEqual(before.staff);
+    expect(await db.select().from(factsGradeLevel)).toEqual(before.gradeLevels);
   });
 
   it("records a sync_run for a failed run, outside the rolled-back transaction", async () => {

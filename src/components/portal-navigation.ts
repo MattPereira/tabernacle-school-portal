@@ -1,4 +1,4 @@
-import { HomeIcon, type LucideIcon, UsersIcon } from "lucide-react";
+import { GraduationCapIcon, HomeIcon, type LucideIcon, UsersIcon } from "lucide-react";
 
 export type PortalNavigationItem = {
   href: string;
@@ -11,6 +11,7 @@ export type PortalNavigationItem = {
 export const portalNavigation = (): PortalNavigationItem[] => [
   { href: "/", label: "Home", icon: HomeIcon },
   { href: "/staff", label: "Staff", icon: UsersIcon },
+  { href: "/students", label: "Students", icon: GraduationCapIcon },
 ];
 
 // What the portal header calls where you are. Derived from the navigation so a

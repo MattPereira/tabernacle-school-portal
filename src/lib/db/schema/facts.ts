@@ -1,7 +1,7 @@
 // Read-only FACTS snapshot (students / people / staff). NEVER authoritative.
 // FACTS always wins and there is no write-back (CONTEXT.md, Sync). Nothing here
 // gates access at request time, including inactive rows.
-import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 // The FACTS personId is the natural key across all three tables — FACTS mints
 // it, we never do. People.personId == Students.studentId == Staff.staffId.
@@ -32,6 +32,11 @@ export const factsPerson = pgTable("facts_person", {
   // Filename of the profile photo FACTS hosts. The bytes stay on FACTS' tenant
   // site; the portal keeps the name and derives the URL (lib/facts/pictures).
   pathToPicture: text("path_to_picture"),
+  // A calendar date, not an instant: a birthday doesn't move with a timezone.
+  // Stored for everyone the snapshot covers because FACTS populates it here and
+  // not on the student record; no staff-facing surface displays it (CONTEXT.md,
+  // Professional staff profile).
+  birthdate: date(),
   ...snapshotFields,
 });
 
@@ -41,6 +46,26 @@ export const factsStudent = pgTable("facts_student", {
   // FACTS school.status verbatim, e.g. "Enrolled". Stored as text because
   // it's their vocabulary, not ours to model.
   status: text(),
+  // FACTS' school.enrollDate — the day this enrolment began, as a calendar date.
+  enrolledSince: date("enrolled_since"),
+  // The homeroom, as the student-homeroom endpoint reports it: FACTS' combined
+  // label ("K Smith"), the room it meets in, and who runs it. 1:1 with the
+  // student, so it sits here rather than in a table of its own. Deliberately no
+  // foreign key on the staff id — FACTS has homerooms held by staff who left
+  // the active set, and that must not abort a sync.
+  homeroom: text(),
+  room: text(),
+  homeroomStaffId: integer("homeroom_staff_id"),
+  ...snapshotFields,
+});
+
+// The school's own grade levels — the vocabulary facts_student.gradeLevel draws
+// from, keyed by that same name, plus the order FACTS sorts them in. That order
+// is why this table exists: PS, JK, TK, K, 01–08 is not alphabetical and is not
+// ours to hardcode.
+export const factsGradeLevel = pgTable("facts_grade_level", {
+  gradeLevel: text("grade_level").primaryKey(),
+  sortOrder: integer("sort_order"),
   ...snapshotFields,
 });
 
@@ -59,3 +84,4 @@ export const factsStaff = pgTable("facts_staff", {
 export type FactsPersonRow = typeof factsPerson.$inferSelect;
 export type FactsStudentRow = typeof factsStudent.$inferSelect;
 export type FactsStaffRow = typeof factsStaff.$inferSelect;
+export type FactsGradeLevelRow = typeof factsGradeLevel.$inferSelect;

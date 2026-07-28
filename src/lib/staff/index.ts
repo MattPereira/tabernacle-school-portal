@@ -6,6 +6,7 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { factsPerson, factsStaff } from "@/lib/db/schema";
 import type * as schema from "@/lib/db/schema";
+import { initials } from "@/lib/facts/initials";
 import { factsPictureUrl } from "@/lib/facts/pictures";
 
 export type StaffDeps = { db: PgDatabase<PgQueryResultHKT, typeof schema> };
@@ -19,9 +20,7 @@ export type StaffEntry = {
   // "First Middle Last", missing parts omitted.
   name: string;
   // What stands in for a photo: first and last initials, so "Ada Byron
-  // Lovelace" reads AL. Empty when FACTS gave no name at all — a blank circle
-  // rather than a placeholder person, because the missing name is the thing
-  // worth noticing.
+  // Lovelace" reads AL (lib/facts/initials).
   initials: string;
   department: string | null;
   // FACTS' contact email, verbatim — personal addresses included, because
@@ -98,10 +97,4 @@ export function groupByDepartment(staff: StaffEntry[]): StaffGroup[] {
       if (b.department === NO_DEPARTMENT) return -1;
       return a.department.localeCompare(b.department, undefined, { sensitivity: "base" });
     });
-}
-
-// First and last only — a middle initial in the circle reads as noise at 40px.
-function initials(firstName: string | null, lastName: string | null): string {
-  const firstLetter = (part: string | null) => (part ? ([...part.trim()][0] ?? "") : "");
-  return (firstLetter(firstName) + firstLetter(lastName)).toUpperCase();
 }
