@@ -3,13 +3,13 @@ import Link from "next/link";
 
 import { FactsSyncCard } from "@/components/facts-sync-card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardAction, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StaffViewer } from "@/lib/auth/viewer";
 import type { SyncRun } from "@/lib/db/schema";
 
 const destinations = [
-  { href: "/staff", label: "Staff", icon: UsersIcon, countKey: "staff" },
-  { href: "/students", label: "Students", icon: GraduationCapIcon, countKey: "students" },
+  { href: "/staff", label: "Staff", description: "View staff roster", icon: UsersIcon, countKey: "staff" },
+  { href: "/students", label: "Students", description: "View student roster", icon: GraduationCapIcon, countKey: "students" },
 ] as const;
 
 export function HomeScreen({
@@ -40,13 +40,12 @@ export function HomeScreen({
             href={destination.href}
             className="group rounded-xl focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <Card className="h-full">
-              <CardHeader className="grid-cols-[1fr_auto] items-center gap-3">
-                <CardTitle className="flex items-center gap-3">
-                  <destination.icon aria-hidden="true" />
-                  {destination.label}
-                </CardTitle>
-                <CardAction className="self-center">
+            <Card className="h-full py-5">
+              <CardHeader className="grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] gap-x-3 gap-y-1 px-5">
+                <destination.icon className="row-span-2 self-center" aria-hidden="true" />
+                <CardTitle className="col-start-2">{destination.label}</CardTitle>
+                <CardDescription className="col-start-2 row-start-2">{destination.description}</CardDescription>
+                <CardAction className="col-start-3 row-span-2 row-start-1 self-center">
                   <Badge variant="secondary" aria-label={`${counts[destination.countKey]} active ${destination.label.toLowerCase()}`}>
                     {counts[destination.countKey]}
                   </Badge>
