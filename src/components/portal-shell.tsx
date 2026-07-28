@@ -1,11 +1,20 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { portalLocation } from "@/components/portal-navigation";
+import { portalBreadcrumb } from "@/components/portal-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
@@ -25,7 +34,7 @@ export function PortalShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const location = portalLocation(pathname);
+  const breadcrumbs = portalBreadcrumb(pathname);
 
   return (
     <SidebarProvider defaultOpen={defaultSidebarOpen}>
@@ -33,7 +42,22 @@ export function PortalShell({
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
           <SidebarTrigger className="-ml-1" />
-          <p className="text-sm font-medium">{location}</p>
+          <Breadcrumb>
+            <BreadcrumbList>
+              {breadcrumbs.map((breadcrumb, index) => (
+                <Fragment key={breadcrumb.label}>
+                  <BreadcrumbItem>
+                    {breadcrumb.href ? (
+                      <BreadcrumbLink render={<Link href={breadcrumb.href} />}>{breadcrumb.label}</BreadcrumbLink>
+                    ) : (
+                      <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                  {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                </Fragment>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="ml-auto">
             <ThemeToggle />
           </div>

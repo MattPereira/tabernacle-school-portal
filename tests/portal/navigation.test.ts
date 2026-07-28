@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { portalLocation, portalNavigation } from "@/components/portal-navigation";
+import { portalBreadcrumb, portalLocation, portalNavigation } from "@/components/portal-navigation";
 
 describe("portalNavigation", () => {
   it("links Home, Staff and Students, in that order", () => {
@@ -22,5 +22,23 @@ describe("portalLocation", () => {
 
   it("falls back to the portal itself off the navigation", () => {
     expect(portalLocation("/somewhere-else")).toBe("Portal");
+  });
+});
+
+describe("portalBreadcrumb", () => {
+  it("puts roster detail below its linked roster", () => {
+    expect(portalBreadcrumb("/staff/10")).toEqual([
+      { label: "Staff", href: "/staff" },
+      { label: "Profile" },
+    ]);
+    expect(portalBreadcrumb("/students/10")).toEqual([
+      { label: "Students", href: "/students" },
+      { label: "Profile" },
+    ]);
+  });
+
+  it("uses the current portal location alone for non-detail routes", () => {
+    expect(portalBreadcrumb("/staff")).toEqual([{ label: "Staff" }]);
+    expect(portalBreadcrumb("/students")).toEqual([{ label: "Students" }]);
   });
 });
