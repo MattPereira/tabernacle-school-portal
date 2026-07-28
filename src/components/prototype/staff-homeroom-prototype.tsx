@@ -8,17 +8,10 @@ import { PersonEmail } from "@/components/person-card";
 import { Badge } from "@/components/ui/badge";
 import type { StaffGroup } from "@/lib/staff";
 
-// PROTOTYPE: Three variants of Staff homerooms, switchable with ?variant=.
-// It deliberately assigns sample labels to 24 entries: the question is density,
-// not the FACTS derivation that the production implementation will supply.
+// PROTOTYPE: Three variants of real Staff homerooms, switchable with ?variant=.
 const variants = ["A", "B", "C"] as const;
-const sampleHomerooms = ["K Smith", "01 Jones", "02 Williams", "03 Brown"];
 
 type Variant = (typeof variants)[number];
-
-function homeroomFor(index: number) {
-  return index < 24 ? sampleHomerooms[index % sampleHomerooms.length] : null;
-}
 
 export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
   const router = useRouter();
@@ -42,7 +35,6 @@ export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   });
 
-  let index = 0;
   return (
     <>
       <div className="flex flex-col gap-8">
@@ -51,8 +43,7 @@ export function StaffHomeroomPrototype({ groups }: { groups: StaffGroup[] }) {
             <h2 className="mb-3 border-b pb-2 text-lg font-semibold">{group.department}</h2>
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {group.staff.map((entry) => {
-                const homeroom = homeroomFor(index++);
-                return <VariantCard key={entry.staffId} entry={entry} homeroom={homeroom} variant={current} />;
+                return <VariantCard key={entry.staffId} entry={entry} homeroom={entry.homeroom} variant={current} />;
               })}
             </ul>
           </section>

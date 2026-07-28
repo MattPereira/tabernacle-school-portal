@@ -9,6 +9,7 @@ const entry = (staffId: number, name: string, department: string | null): StaffE
   name,
   initials: "",
   department,
+  homeroom: null,
   contactEmail: null,
   photoUrl: null,
 });
