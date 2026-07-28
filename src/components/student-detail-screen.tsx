@@ -27,35 +27,37 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
         </CardContent>
       </Card>
 
-      <div className={`grid gap-6 ${student.homeroom ? "md:grid-cols-[1fr_0.8fr]" : ""}`}>
-        <Section title="Enrolment">
-          <dl className="grid gap-5 sm:grid-cols-2">
-            <Fact icon={GraduationCap} label="Enrolled since">{student.enrolledSince && date(student.enrolledSince)}</Fact>
+      <div className="space-y-6">
+        <Section title="Student">
+          <dl className="grid gap-5 md:grid-cols-3">
             <Fact icon={CalendarDays} label="Birthdate">{student.birthdate && date(student.birthdate)}</Fact>
             <Fact icon={UserRound} label="Age">{student.age === null ? null : `${student.age} years old`}</Fact>
+            <Fact icon={GraduationCap} label="Enrolled since">{student.enrolledSince && date(student.enrolledSince)}</Fact>
           </dl>
         </Section>
 
         {student.homeroom && (
-          <Section title="Homeroom">
-            <div className="flex gap-3">
-              <MapPin className="mt-1 size-5 shrink-0 text-muted-foreground" />
-              <div className="space-y-1">
-                {(student.homeroom.label || student.homeroom.room) && (
-                  <p className="font-medium">
-                    {student.homeroom.label}
-                    {student.homeroom.label && student.homeroom.room && <span className="font-normal text-muted-foreground"> · </span>}
-                    {student.homeroom.room && <span className="font-normal text-muted-foreground">{student.homeroom.room}</span>}
-                  </p>
-                )}
-                {student.homeroom.teacherName && (
-                  <Link className="text-sm underline underline-offset-4" href={`/staff#staff-${student.homeroom.teacherId}`}>
-                    {student.homeroom.teacherName}
-                  </Link>
-                )}
+          <div className="max-w-sm">
+            <Section title="Homeroom">
+              <div className="flex gap-3">
+                <MapPin className="mt-1 size-5 shrink-0 text-muted-foreground" />
+                <div className="space-y-1">
+                  {(student.homeroom.label || student.homeroom.room) && (
+                    <p className="font-medium">
+                      {student.homeroom.label}
+                      {student.homeroom.label && student.homeroom.room && <span className="font-normal text-muted-foreground"> · </span>}
+                      {student.homeroom.room && <span className="font-normal text-muted-foreground">{student.homeroom.room}</span>}
+                    </p>
+                  )}
+                  {student.homeroom.teacherName && (
+                    <Link className="text-sm underline underline-offset-4" href={`/staff#staff-${student.homeroom.teacherId}`}>
+                      {student.homeroom.teacherName}
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-          </Section>
+            </Section>
+          </div>
         )}
       </div>
     </div>
@@ -66,7 +68,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent>{children}</CardContent></Card>;
 }
 
-function Fact({ icon: Icon, label, children }: { icon: typeof Mail; label: string; children: React.ReactNode }) {
+function Fact({ icon: Icon, label, children }: { icon: typeof CalendarDays; label: string; children: React.ReactNode }) {
   return <div className="flex gap-3"><Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div><dt className="text-sm text-muted-foreground">{label}</dt><dd className="text-sm font-medium">{children ?? "—"}</dd></div></div>;
 }
 
