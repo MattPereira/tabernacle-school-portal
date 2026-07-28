@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { FactsSyncCard } from "@/components/facts-sync-card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StaffViewer } from "@/lib/auth/viewer";
 import type { SyncRun } from "@/lib/db/schema";
 
@@ -41,15 +41,15 @@ export function HomeScreen({
             className="group rounded-xl focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <Card className="h-full py-5">
-              <CardHeader className="grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] gap-x-3 gap-y-1 px-5">
+              <CardHeader className="grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-x-3 gap-y-1 px-5">
                 <destination.icon className="row-span-2 self-center" aria-hidden="true" />
-                <CardTitle className="col-start-2">{destination.label}</CardTitle>
-                <CardDescription className="col-start-2 row-start-2">{destination.description}</CardDescription>
-                <CardAction className="col-start-3 row-span-2 row-start-1 self-center">
+                <CardTitle className="col-start-2 flex items-center gap-2">
+                  {destination.label}
                   <Badge variant="secondary" aria-label={`${counts[destination.countKey]} active ${destination.label.toLowerCase()}`}>
                     {counts[destination.countKey]}
                   </Badge>
-                </CardAction>
+                </CardTitle>
+                <CardDescription className="col-start-2 row-start-2">{destination.description}</CardDescription>
               </CardHeader>
             </Card>
           </Link>
