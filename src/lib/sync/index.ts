@@ -115,6 +115,14 @@ export async function latestSyncRun(db: SyncDb) {
   return run ?? null;
 }
 
+export async function latestAppliedSyncRun(db: SyncDb) {
+  const [run] = await db.select().from(syncRun)
+    .where(eq(syncRun.outcome, "applied"))
+    .orderBy(desc(syncRun.id))
+    .limit(1);
+  return run ?? null;
+}
+
 // The enrolled roster with each student's homeroom folded in. The homeroom
 // endpoint can't be filtered, so a row for someone outside the roster fetch is
 // dropped rather than allowed to invent a student.

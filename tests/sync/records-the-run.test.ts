@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { syncRun } from "@/lib/db/schema";
 import type { FactsClient } from "@/lib/facts";
-import { sync } from "@/lib/sync";
+import { latestAppliedSyncRun, latestSyncRun, sync } from "@/lib/sync";
 
 import { createTestDb, type TestDb } from "../support/db";
 import { fakeFacts, person, staffMember, student } from "../support/facts";
@@ -66,6 +66,14 @@ describe("sync records every run", () => {
 
     const runs = await db.select().from(syncRun);
     expect(runs.map((r) => r.outcome)).toEqual(["applied", "applied", "failed"]);
+  });
+
+  it("keeps the latest applied run available when a newer run failed", async () => {
+    await sync({ db, facts: fakeFacts({}) });
+    await sync({ db, facts: fakeFacts({ failOn: "staff" }) });
+
+    expect((await latestSyncRun(db))?.outcome).toBe("failed");
+    expect((await latestAppliedSyncRun(db))?.outcome).toBe("applied");
   });
 
   it("refuses a second run while an earlier run is in flight", async () => {

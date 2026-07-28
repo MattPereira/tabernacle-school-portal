@@ -11,7 +11,7 @@ export type Viewer =
   | { state: "anonymous" }
   | { state: "unmatched"; name: string; email: string }
   | { state: "student"; name: string; email: string }
-  | { state: "staff"; name: string; email: string };
+  | { state: "staff"; name: string; email: string; staffId: number };
 
 // Wiring: reads the session off the request and hands the decision to
 // resolveAccess. The rules live in lib/identity — this only plumbs.

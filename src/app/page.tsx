@@ -8,7 +8,9 @@ import { PortalShell } from "@/components/portal-shell";
 import { canonicalDestination } from "@/lib/auth/destination";
 import { getViewer } from "@/lib/auth/viewer";
 import { db } from "@/lib/db/client";
-import { latestSyncRun } from "@/lib/sync";
+import { listStaff } from "@/lib/staff";
+import { listStudents } from "@/lib/students";
+import { latestAppliedSyncRun, latestSyncRun } from "@/lib/sync";
 
 // The signed-in home page is deliberately outside the staff-only portal group:
 // every signed-in user can trigger and inspect sync, while only staff enter the
@@ -32,6 +34,11 @@ export default async function Home() {
   }
 
   const sidebarCookie = (await cookies()).get("sidebar_state");
+  const [staff, students, latestAppliedRun] = await Promise.all([
+    listStaff({ db }),
+    listStudents({ db }),
+    latestAppliedSyncRun(db),
+  ]);
 
   return (
     <PortalShell
@@ -39,7 +46,13 @@ export default async function Home() {
       defaultSidebarOpen={sidebarCookie?.value !== "false"}
       signOut={signOut}
     >
-      <HomeScreen viewer={viewer} lastRun={lastRun} runSync={runSync} signOut={signOut} />
+      <HomeScreen
+        viewer={viewer}
+        counts={{ staff: staff.length, students: students.length }}
+        latestRun={lastRun}
+        latestAppliedRun={latestAppliedRun}
+        runSync={runSync}
+      />
     </PortalShell>
   );
 }
