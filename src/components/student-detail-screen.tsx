@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, GraduationCap, Mail, MapPin, UserRound } from "lucide-react";
+import { CalendarDays, GraduationCap, MapPin, UserRound } from "lucide-react";
 
 import { PersonAvatar } from "@/components/person-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +14,16 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
         <CardContent>
-          <div className="flex items-center gap-4">
+          <div className="relative flex items-center gap-4">
             <PersonAvatar initials={student.initials} photoUrl={student.photoUrl} size="large" />
-            <div className="min-w-0 space-y-1">
+            <div className={`min-w-0 space-y-1 ${student.status ? "pr-24" : ""}`}>
               <h1 className={`text-3xl font-medium ${student.name ? "" : "text-muted-foreground"}`}>
                 {student.name || "No name in FACTS"}
               </h1>
               {student.gradeLevel && <p className="text-sm text-muted-foreground">{student.gradeLevel}</p>}
-              {student.status && <Badge variant="secondary">{student.status}</Badge>}
+              {student.contactEmail && <p className="truncate text-sm text-muted-foreground">{student.contactEmail}</p>}
             </div>
+            {student.status && <Badge className="absolute right-0 top-0" variant="secondary">{student.status}</Badge>}
           </div>
         </CardContent>
       </Card>
@@ -30,9 +31,6 @@ export function StudentDetailScreen({ student }: { student: StudentDetail }) {
       <div className={`grid gap-6 ${student.homeroom ? "md:grid-cols-[1fr_0.8fr]" : ""}`}>
         <Section title="Enrolment">
           <dl className="grid gap-5 sm:grid-cols-2">
-            <Fact icon={Mail} label="Contact email">
-              {student.contactEmail}
-            </Fact>
             <Fact icon={GraduationCap} label="Enrolled since">{student.enrolledSince && date(student.enrolledSince)}</Fact>
             <Fact icon={CalendarDays} label="Birthdate">{student.birthdate && date(student.birthdate)}</Fact>
             <Fact icon={UserRound} label="Age">{student.age === null ? null : `${student.age} years old`}</Fact>
